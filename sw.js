@@ -1,4 +1,4 @@
-const CACHE_NAME = 'odak-pwa-v8';
+const CACHE_NAME = 'odak-pwa-v9';
 const STATIC_ASSETS = [
   './',
   'index.html',
@@ -40,10 +40,58 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+let focusCompletionTimeout = null;
+
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  if (!event.data) return;
+  if (event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+  
+  // 📱 Kilit ekranında / arka planda süre dolduğunda tam zamanında kutlama bildirimi fırlat
+  if (event.data.type === 'SCHEDULE_FOCUS_COMPLETION') {
+    if (focusCompletionTimeout) {
+      clearTimeout(focusCompletionTimeout);
+      focusCompletionTimeout = null;
+    }
+    const target = event.data.targetEndTime;
+    const now = Date.now();
+    const delay = Math.max(0, target - now);
+    
+    focusCompletionTimeout = setTimeout(() => {
+      self.registration.showNotification(`🎉 Tebrikler! ${event.data.taskTitle || 'Odak Seansı'} Tamamlandı!`, {
+        body: `${event.data.treeType || '🌳'} ${event.data.treeName || 'Yeni Ağacın'} ormanına eklendi. Harika bir iş çıkardın!`,
+        icon: 'icons/icon-192.png',
+        badge: 'icons/icon-192.png',
+        vibrate: [200, 100, 200],
+        tag: 'odak-completed',
+        renotify: true
+      });
+    }, delay);
+  }
+  
+  if (event.data.type === 'CANCEL_FOCUS_COMPLETION') {
+    if (focusCompletionTimeout) {
+      clearTimeout(focusCompletionTimeout);
+      focusCompletionTimeout = null;
+    }
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow('./');
+      }
+    })
+  );
 });
 
 self.addEventListener('fetch', (event) => {

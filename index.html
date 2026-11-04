@@ -3317,6 +3317,104 @@ body.day .foc-ambient-bar {
   color: var(--danger);
 }
 
+/* 📱 Kilit Ekranı & Arka Plan Modu Seçici (Ses & Mikrofon Dostu vs Medya Kartı) */
+.foc-lock-mode-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 320px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 8px 10px;
+  margin: 4px 0 2px;
+  box-sizing: border-box;
+}
+body.day .foc-lock-mode-section {
+  background: rgba(0, 0, 0, 0.02);
+}
+.foc-lock-mode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 6px;
+}
+.foc-lock-mode-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text1);
+}
+.foc-lock-mode-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid rgba(82, 199, 133, 0.3);
+  transition: all .2s ease;
+}
+.foc-lock-mode-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 2px;
+  gap: 3px;
+  box-sizing: border-box;
+}
+body.day .foc-lock-mode-bar {
+  background: rgba(0, 0, 0, 0.05);
+}
+.lock-mode-pill {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text3);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all .15s ease;
+  white-space: nowrap;
+}
+.lock-mode-pill:hover {
+  color: var(--text1);
+}
+.lock-mode-pill.active {
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+body.day .lock-mode-pill.active {
+  background: #fff;
+  color: var(--accent);
+}
+.foc-lock-mode-desc {
+  width: 100%;
+  font-size: 9.5px;
+  line-height: 1.35;
+  color: var(--text3);
+  text-align: center;
+  margin-top: 5px;
+  transition: all .2s ease;
+}
+
 /* ══════════════════════════════════════════════════════
    GÜNLÜK ODAK HEDEFİ & RİTİM (ESTETİK & FOREST UYUMLU HERO KARTI)
    ══════════════════════════════════════════════════════ */
@@ -4576,6 +4674,28 @@ body.day .intro-app-title {
 
         <button class="btn-water" id="foc-btn-water" style="display:none;" onclick="startWateringBreak()">💧 Fidanı Sula & 5 Dk Dinlen</button>
         <button class="btn-ghost" id="foc-btn-giveup" style="display:none;" onclick="giveUpFocus()">🥀 Pes Et</button>
+      </div>
+
+      <!-- 📱 Kilit Ekranı & Arka Plan Modu -->
+      <div class="foc-lock-mode-section" id="foc-lock-mode-section">
+        <div class="foc-lock-mode-header">
+          <div class="foc-lock-mode-title">
+            <span id="foc-lock-mode-icon">🛡️</span>
+            <span>Kilit Ekranı & Arka Plan</span>
+          </div>
+          <span class="foc-lock-mode-badge" id="foc-lock-mode-badge">Ses Dostu</span>
+        </div>
+        <div class="foc-lock-mode-bar">
+          <button type="button" class="lock-mode-pill active" id="mode-btn-voice" onclick="setLockScreenMode('voice-friendly')">
+            🛡️ Ses Dostu (Önerilen)
+          </button>
+          <button type="button" class="lock-mode-pill" id="mode-btn-media" onclick="setLockScreenMode('media-card')">
+            🎵 Medya Kartı (Opsiyonel)
+          </button>
+        </div>
+        <div class="foc-lock-mode-desc" id="foc-lock-mode-desc">
+          WhatsApp sesli mesajları ve Spotify ile %100 uyumludur. Mikrofonu engellemez, arka planda saat gibi dakik çalışır.
+        </div>
       </div>
 
       <!-- 📴 Derin Odak Modu -->
@@ -9953,13 +10073,79 @@ function generateFocusCoverImage(curTimeLeft, curTotalTime, taskTitle, treeIco, 
   }
 }
 
-function ensureLockScreenAudio() {
-  if (currentAmbientType !== 'off') {
-    if (ambientAudioEl && !ambientAudioEl.paused) {
-      const bgAudio = document.getElementById('bg-focus-audio');
-      if (bgAudio) { try { bgAudio.pause(); } catch(e){} }
-      return;
+// ══════════════════════════════════════════════════════
+// KİLİT EKRANI & ARKA PLAN MOTORU (SES DOSTU & SIFIR ÇAKIŞMA)
+// ══════════════════════════════════════════════════════
+let lockScreenMode = localStorage.getItem('ODAK_LOCK_SCREEN_MODE') || 'voice-friendly';
+let lastLockScreenMinute = -1;
+
+function setLockScreenMode(mode) {
+  if (mode !== 'voice-friendly' && mode !== 'media-card') mode = 'voice-friendly';
+  lockScreenMode = mode;
+  localStorage.setItem('ODAK_LOCK_SCREEN_MODE', mode);
+  updateLockScreenModeUI();
+  
+  if (isFocusing) {
+    if (lockScreenMode === 'media-card') {
+      closeLockScreenOngoingNotification();
+      ensureLockScreenAudio();
+      initLockScreenMediaSession(true);
+      showAppToast('🎵 Kilit Ekranı Medya Kartı devrede.', '📱');
+    } else {
+      stopLockScreenAudio();
+      clearLockScreenMediaSession();
+      if (document.hidden) {
+        showLockScreenOngoingNotification();
+      }
+      showAppToast('🛡️ Ses & WhatsApp Dostu mod devrede (Mikrofon tamamen serbest).', '✅');
     }
+  }
+}
+
+function updateLockScreenModeUI() {
+  const btnVoice = document.getElementById('mode-btn-voice');
+  const btnMedia = document.getElementById('mode-btn-media');
+  const badge = document.getElementById('foc-lock-mode-badge');
+  const desc = document.getElementById('foc-lock-mode-desc');
+  const icon = document.getElementById('foc-lock-mode-icon');
+  
+  if (lockScreenMode === 'media-card') {
+    if (btnVoice) btnVoice.classList.remove('active');
+    if (btnMedia) btnMedia.classList.add('active');
+    if (badge) {
+      badge.textContent = 'Medya Kartı';
+      badge.style.background = 'rgba(59, 130, 246, 0.15)';
+      badge.style.color = '#60A5FA';
+      badge.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+    }
+    if (icon) icon.textContent = '🎵';
+    if (desc) desc.textContent = 'Kilit ekranında müzik çalar görsel kartı gösterir. (WhatsApp ses kaydı sırasında mikrofonu serbest bırakmak için Ses Dostu mod önerilir).';
+  } else {
+    if (btnVoice) btnVoice.classList.add('active');
+    if (btnMedia) btnMedia.classList.remove('active');
+    if (badge) {
+      badge.textContent = 'Ses Dostu (Önerilen)';
+      badge.style.background = 'var(--accent-soft)';
+      badge.style.color = 'var(--accent)';
+      badge.style.borderColor = 'rgba(82, 199, 133, 0.3)';
+    }
+    if (icon) icon.textContent = '🛡️';
+    if (desc) desc.textContent = 'WhatsApp sesli mesajları ve Spotify ile %100 uyumludur. Mikrofonu asla engellemez, arka planda saat gibi dakik çalışır.';
+  }
+}
+
+function ensureLockScreenAudio() {
+  // Eğer kullanıcı ses dostu moddaysa VE ambiyans sesi kapalıysa ASLA sessizlik sesi çalma!
+  // Böylece WhatsApp sesli mesajları, mikrofon ve Spotify ASLA engellenmez!
+  if (lockScreenMode !== 'media-card' && currentAmbientType === 'off') {
+    stopLockScreenAudio();
+    return;
+  }
+
+  // Eğer zaten bir ambiyans sesi (yağmur, kafe vb.) çalıyorsa ekstra dummy audio açma
+  if (currentAmbientType !== 'off' && ambientAudioEl && !ambientAudioEl.paused) {
+    stopLockScreenAudio();
+    return;
   }
 
   let bgAudio = document.getElementById('bg-focus-audio');
@@ -9972,7 +10158,7 @@ function ensureLockScreenAudio() {
     document.body.appendChild(bgAudio);
   }
 
-  bgAudio.volume = 0.5; // Dijital sessizlik içerir, 0 ses çıkarır ama iOS/Android kilit ekranını 100% aktif tutar
+  bgAudio.volume = 0.05;
   try {
     if (bgAudio.paused || bgAudio.ended) {
       bgAudio.currentTime = 0;
@@ -9980,7 +10166,7 @@ function ensureLockScreenAudio() {
     const p = bgAudio.play();
     if (p !== undefined) {
       p.then(() => {
-        if ('mediaSession' in navigator) {
+        if ('mediaSession' in navigator && lockScreenMode === 'media-card') {
           navigator.mediaSession.playbackState = 'playing';
         }
       }).catch(err => {
@@ -10001,6 +10187,7 @@ function stopLockScreenAudio() {
 }
 
 function initLockScreenMediaSession(forceNewCover = false) {
+  if (lockScreenMode !== 'media-card') return;
   if (!('mediaSession' in navigator) || !isFocusing) return;
 
   const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
@@ -10060,6 +10247,7 @@ function initLockScreenMediaSession(forceNewCover = false) {
 }
 
 function syncLockScreenPosition() {
+  if (lockScreenMode !== 'media-card') return;
   if (!('mediaSession' in navigator) || !isFocusing) return;
   try {
     if ('setPositionState' in navigator.mediaSession) {
@@ -10078,24 +10266,36 @@ function syncLockScreenPosition() {
 }
 
 function updateLockScreenTitleOnly() {
-  if (!('mediaSession' in navigator) || !isFocusing) return;
-  const taskTitle = activeTask?.title || 'Odak Seansı';
-  let stateTitle = '';
-  let albumText = '';
+  const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+  const s = String(timeLeft % 60).padStart(2, '0');
 
   if (isShortBreak) {
     const bm = String(Math.floor(shortBreakTimeLeft / 60)).padStart(2, '0');
     const bs = String(shortBreakTimeLeft % 60).padStart(2, '0');
-    stateTitle = `☕ ${bm}:${bs} • ${taskTitle}`;
-    albumText = `Mola: ${bm}:${bs} • Odak Ajandası`;
     document.title = `(${bm}:${bs}) ☕ Mola • Odak Ajandası`;
   } else {
-    const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
-    const s = String(timeLeft % 60).padStart(2, '0');
-    stateTitle = `🌿 ${m}:${s} • ${taskTitle}`;
-    albumText = `Kalan: ${m}:${s} • Hedef: ${Math.round(totalTime / 60)} dk`;
     document.title = `(${m}:${s}) 🌿 Odak Ajandası`;
   }
+
+  // App Badge API desteği varsa uygulama simgesi üzerindeki sayıyı güncelle
+  if ('setAppBadge' in navigator && isFocusing) {
+    try {
+      const mins = Math.max(1, Math.ceil(timeLeft / 60));
+      navigator.setAppBadge(mins).catch(() => {});
+    } catch(e) {}
+  }
+
+  if (lockScreenMode !== 'media-card') return;
+  if (!('mediaSession' in navigator) || !isFocusing) return;
+
+  // iOS SpringBoard çöküşünü önlemek için sadece dakika değiştiğinde güncelle
+  const curMin = Math.floor(timeLeft / 60);
+  if (curMin === lastLockScreenMinute) return;
+  lastLockScreenMinute = curMin;
+
+  const taskTitle = activeTask?.title || 'Odak Seansı';
+  let stateTitle = `🌿 ${m}:${s} • ${taskTitle}`;
+  let albumText = `Kalan: ${m}:${s} • Hedef: ${Math.round(totalTime / 60)} dk`;
 
   try {
     if (navigator.mediaSession.metadata) {
@@ -10106,6 +10306,7 @@ function updateLockScreenTitleOnly() {
 }
 
 function updateLockScreenMediaSession(forceNewCover = false) {
+  if (lockScreenMode !== 'media-card') return;
   if (forceNewCover) {
     initLockScreenMediaSession(true);
   } else {
@@ -10115,6 +10316,10 @@ function updateLockScreenMediaSession(forceNewCover = false) {
 
 function clearLockScreenMediaSession() {
   document.title = 'Odak Ajandası';
+  lastLockScreenMinute = -1;
+  if ('clearAppBadge' in navigator) {
+    try { navigator.clearAppBadge().catch(() => {}); } catch(e) {}
+  }
   if ('mediaSession' in navigator) {
     try {
       navigator.mediaSession.metadata = null;
@@ -10164,9 +10369,60 @@ function saveActiveFocusSessionState() {
   } catch(e) {}
 }
 
-function sendFocusCompletionNotification(taskTitle, treeType, treeName) {
+function showLockScreenOngoingNotification() {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
-  const title = `Tebrikler! 🎉 ${taskTitle || 'Odak Seansı'} Tamamlandı!`;
+  if (!isFocusing) return;
+
+  const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+  const s = String(timeLeft % 60).padStart(2, '0');
+  const taskTitle = activeTask?.title || 'Odak Seansı';
+  const treeIco = isShortBreak ? '☕' : (activeTask?.treeType || '🌳');
+
+  const finishDate = new Date(focusTargetEndTime || (Date.now() + timeLeft * 1000));
+  const finishStr = finishDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const title = isShortBreak 
+    ? `☕ Mola Devam Ediyor (${m}:${s})` 
+    : `${treeIco} Odaklanma Devam Ediyor (${m}:${s})`;
+
+  const options = {
+    body: `🎯 ${taskTitle} • 🏁 Tahmini Bitiş: ${finishStr}\n🌿 Telefonunu kapatsan da sayaç tam zamanında devam eder.`,
+    icon: 'icons/icon-192.png',
+    badge: 'icons/icon-192.png',
+    tag: 'odak-active-session',
+    renotify: false,
+    silent: true
+  };
+
+  try {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.showNotification(title, options);
+      }).catch(() => {
+        new Notification(title, options);
+      });
+    } else {
+      new Notification(title, options);
+    }
+  } catch(e) {}
+}
+
+function closeLockScreenOngoingNotification() {
+  try {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.getNotifications({ tag: 'odak-active-session' }).then(notifs => {
+          notifs.forEach(n => n.close());
+        }).catch(() => {});
+      }).catch(() => {});
+    }
+  } catch(e) {}
+}
+
+function sendFocusCompletionNotification(taskTitle, treeType, treeName) {
+  closeLockScreenOngoingNotification();
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const title = `🎉 Tebrikler! ${taskTitle || 'Odak Seansı'} Tamamlandı!`;
   const options = {
     body: `${treeType || '🌳'} ${treeName || 'Yeni Ağacın'} ormanına eklendi. Harika bir iş çıkardın!`,
     icon: 'icons/icon-192.png',
@@ -10188,7 +10444,13 @@ function sendFocusCompletionNotification(taskTitle, treeType, treeName) {
 }
 
 function handleVisibilityOrFocusSync() {
-  if (!isFocusing || isBreakMode) return;
+  if (!isFocusing) {
+    if (localStorage.getItem('ODAK_ACTIVE_FOCUS')) {
+      restoreSavedFocusSessionIfNeeded();
+    }
+    return;
+  }
+  if (isBreakMode) return;
   
   const now = Date.now();
   if (isShortBreak && shortBreakTargetEndTime) {
@@ -10196,7 +10458,6 @@ function handleVisibilityOrFocusSync() {
     updateBreakTimerDisplay();
     updateMiniFocusTimer();
     updateLockScreenTitleOnly();
-    syncLockScreenPosition();
     if (shortBreakTimeLeft <= 0) {
       clearInterval(breakTimerInt);
       playChimeSound();
@@ -10211,7 +10472,6 @@ function handleVisibilityOrFocusSync() {
     setFocArc(pct);
     updateTreeStage(pct);
     updateLockScreenTitleOnly();
-    syncLockScreenPosition();
     if (timeLeft <= 0) {
       completeFocus();
     }
@@ -10368,9 +10628,33 @@ function startFocus(resumeExisting = false){
     }
   }
   
+  // Bildirim izni sor (Kullanıcı etkileşimi anında)
+  if ("Notification" in window && Notification.permission === "default") {
+    try { Notification.requestPermission().catch(()=>{}); } catch(e){}
+  }
+
+  // Service Worker'a zamanlayıcı bitişini bildir (uygulama kapansa bile bildirim gelsin)
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    try {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SCHEDULE_FOCUS_COMPLETION',
+        targetEndTime: focusTargetEndTime,
+        taskTitle: activeTask?.title,
+        treeType: activeTask?.treeType,
+        treeName: activeTask?.treeName
+      });
+    } catch(e){}
+  }
+
   saveActiveFocusSessionState();
-  ensureLockScreenAudio();
-  initLockScreenMediaSession(true);
+  
+  if (lockScreenMode === 'media-card') {
+    ensureLockScreenAudio();
+    initLockScreenMediaSession(true);
+  } else {
+    stopLockScreenAudio();
+    clearLockScreenMediaSession();
+  }
 
   document.getElementById('foc-btn-start').style.display = 'none';
   
@@ -10441,7 +10725,12 @@ function takeQuickBreak(){
   shortBreakTimeLeft = 180; // 3 dakika
   shortBreakTargetEndTime = Date.now() + 180 * 1000;
   saveActiveFocusSessionState();
-  initLockScreenMediaSession(true);
+  
+  if (lockScreenMode === 'media-card') {
+    initLockScreenMediaSession(true);
+  } else if (document.hidden) {
+    showLockScreenOngoingNotification();
+  }
   
   const ov = document.getElementById('focus-overlay');
   ov.className = 'active state-pause-break';
@@ -10540,8 +10829,27 @@ function resumeFocusFromBreak(){
   updateTopBackButton();
   showAppToast('🌿 Odak seansına devam ediliyor!', '🌱');
   
-  ensureLockScreenAudio();
-  initLockScreenMediaSession(true);
+  // Service Worker'a yeni bitişi bildir
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    try {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SCHEDULE_FOCUS_COMPLETION',
+        targetEndTime: focusTargetEndTime,
+        taskTitle: activeTask?.title,
+        treeType: activeTask?.treeType,
+        treeName: activeTask?.treeName
+      });
+    } catch(e){}
+  }
+
+  if (lockScreenMode === 'media-card') {
+    ensureLockScreenAudio();
+    initLockScreenMediaSession(true);
+  } else {
+    stopLockScreenAudio();
+    clearLockScreenMediaSession();
+    if (document.hidden) showLockScreenOngoingNotification();
+  }
 
   // Ana odak zamanlayıcısını kaldığı yerden devam ettir
   clearInterval(timerInt);
@@ -10704,6 +11012,10 @@ function failFocus(removedTreeInfo){
   stopAmbientSound();
   stopLockScreenAudio();
   clearLockScreenMediaSession();
+  closeLockScreenOngoingNotification();
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    try { navigator.serviceWorker.controller.postMessage({ type: 'CANCEL_FOCUS_COMPLETION' }); } catch(e){}
+  }
   localStorage.removeItem('ODAK_ACTIVE_FOCUS');
   isFocusing = false;
   isBreakMode = false;
@@ -10821,6 +11133,10 @@ function completeFocus(){
   stopAmbientSound();
   stopLockScreenAudio();
   clearLockScreenMediaSession();
+  closeLockScreenOngoingNotification();
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    try { navigator.serviceWorker.controller.postMessage({ type: 'CANCEL_FOCUS_COMPLETION' }); } catch(e){}
+  }
   localStorage.removeItem('ODAK_ACTIVE_FOCUS');
   isFocusing = false;
   isBreakMode = false;
@@ -10834,9 +11150,7 @@ function completeFocus(){
   if(statusTxt) statusTxt.textContent = 'TAMAMLANDI 🎉';
   if(cardEl) cardEl.className = 'foc-timer-card';
 
-  if(document.hidden){
-    sendFocusCompletionNotification(activeTask?.title, activeTask?.treeType, activeTask?.treeName);
-  }
+  sendFocusCompletionNotification(activeTask?.title, activeTask?.treeType, activeTask?.treeName);
 
   playChimeSound();
 
@@ -11947,15 +12261,26 @@ function renderStats(){
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     handleVisibilityOrFocusSync();
+    closeLockScreenOngoingNotification();
   } else {
     if (isFocusing) {
       saveActiveFocusSessionState();
-      updateLockScreenMediaSession();
+      if (lockScreenMode === 'voice-friendly') {
+        showLockScreenOngoingNotification();
+      } else if (lockScreenMode === 'media-card') {
+        updateLockScreenMediaSession();
+      }
     }
   }
 });
-window.addEventListener('pageshow', handleVisibilityOrFocusSync);
-window.addEventListener('focus', handleVisibilityOrFocusSync);
+window.addEventListener('pageshow', () => {
+  handleVisibilityOrFocusSync();
+  closeLockScreenOngoingNotification();
+});
+window.addEventListener('focus', () => {
+  handleVisibilityOrFocusSync();
+  closeLockScreenOngoingNotification();
+});
 
 /* ══════════════════════════════════════════════════════
    BAŞLANGIÇ (BOOTSTRAP & AUTO-HYDRATE)
@@ -12016,6 +12341,7 @@ try {
   updateSunInfo();
   renderUserProfileUI();
   renderFriends();
+  updateLockScreenModeUI();
   restoreSavedFocusSessionIfNeeded();
 } catch(e) { console.warn('bootstrap render error:', e); }
 
