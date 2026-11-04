@@ -1,4 +1,4 @@
-const CACHE_NAME = 'odak-pwa-v12';
+const CACHE_NAME = 'odak-pwa-v13';
 const STATIC_ASSETS = [
   './',
   'index.html',
