@@ -1,4 +1,4 @@
-const CACHE_NAME = 'odak-pwa-v4';
+const CACHE_NAME = 'odak-pwa-v5';
 const STATIC_ASSETS = [
   './',
   'index.html',
@@ -9,7 +9,8 @@ const STATIC_ASSETS = [
   'sounds/rain.mp3',
   'sounds/forest.mp3',
   'sounds/cafe.mp3',
-  'sounds/waves.mp3'
+  'sounds/waves.mp3',
+  'sounds/silence.wav'
 ];
 
 self.addEventListener('install', (event) => {

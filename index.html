@@ -7123,11 +7123,17 @@ function stopAmbientSound(){
       if(vol <= 0.02){
         clearInterval(fadeOutInt);
         try { a.pause(); a.currentTime = 0; } catch(e){}
+        if(typeof isFocusing !== 'undefined' && isFocusing && typeof ensureLockScreenAudio === 'function'){
+          ensureLockScreenAudio();
+        }
       }
     }, 25);
   }
   stopProceduralAmbient();
   currentAmbientType = 'off';
+  if(typeof isFocusing !== 'undefined' && isFocusing && typeof ensureLockScreenAudio === 'function'){
+    ensureLockScreenAudio();
+  }
   ['off','rain','cafe','forest','waves'].forEach(t => {
     const btn = document.getElementById('amb-btn-' + t);
     if(btn) btn.classList.toggle('active', t === 'off');
@@ -7147,6 +7153,9 @@ function toggleAmbientSound(type){
   }
   if(ambientAudioEl){
     try { ambientAudioEl.pause(); ambientAudioEl.currentTime = 0; } catch(e){}
+  }
+  if(typeof backgroundSilenceAudio !== 'undefined' && backgroundSilenceAudio){
+    try { backgroundSilenceAudio.pause(); } catch(e){}
   }
   stopProceduralAmbient();
 
@@ -9667,6 +9676,249 @@ let sessionBreaksLeft = 1;
 let isShortBreak = false;
 let breakTimerInt = null;
 let shortBreakTimeLeft = 180; // 3 dakika
+let focusTargetEndTime = null;
+let shortBreakTargetEndTime = null;
+let backgroundSilenceAudio = null;
+
+function ensureLockScreenAudio() {
+  if (currentAmbientType !== 'off' && ambientAudioEl && !ambientAudioEl.paused) {
+    return;
+  }
+  try {
+    if (!backgroundSilenceAudio) {
+      backgroundSilenceAudio = new Audio('sounds/silence.wav');
+      backgroundSilenceAudio.loop = true;
+      backgroundSilenceAudio.volume = 0.01;
+    }
+    const p = backgroundSilenceAudio.play();
+    if (p !== undefined) {
+      p.catch(() => {});
+    }
+  } catch(e) {}
+}
+
+function stopLockScreenAudio() {
+  if (backgroundSilenceAudio) {
+    try {
+      backgroundSilenceAudio.pause();
+      backgroundSilenceAudio.currentTime = 0;
+    } catch(e) {}
+  }
+}
+
+function updateLockScreenMediaSession() {
+  if (!('mediaSession' in navigator) || !isFocusing) return;
+  
+  const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+  const s = String(timeLeft % 60).padStart(2, '0');
+  const taskTitle = activeTask?.title || 'Odak Seansı';
+  const treeIco = activeTask?.treeType || '🌳';
+  const treeNm = activeTask?.treeName || 'Fidan';
+  
+  let stateTitle = '';
+  let artistText = '';
+  let albumText = '';
+
+  if (isShortBreak) {
+    const bm = String(Math.floor(shortBreakTimeLeft / 60)).padStart(2, '0');
+    const bs = String(shortBreakTimeLeft % 60).padStart(2, '0');
+    stateTitle = `☕ Mola: ${bm}:${bs} • ${taskTitle}`;
+    artistText = 'Odak Ajandası • Dinlenme Molası';
+    albumText = 'Derin bir nefes al';
+  } else {
+    stateTitle = `🌿 ${m}:${s} • ${taskTitle}`;
+    artistText = `Odak Ajandası • ${treeIco} ${treeNm} Büyüyor`;
+    albumText = `Kalan: ${m}:${s} • Hedef: ${Math.round(totalTime / 60)} dk`;
+    document.title = `(${m}:${s}) 🌿 Odak Ajandası`;
+  }
+  
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: stateTitle,
+      artist: artistText,
+      album: albumText,
+      artwork: [
+        { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+        { src: 'icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
+      ]
+    });
+
+    if ('setPositionState' in navigator.mediaSession) {
+      const curPosition = isShortBreak 
+        ? Math.min(180, 180 - shortBreakTimeLeft)
+        : Math.min(totalTime, totalTime - timeLeft);
+      const curDuration = isShortBreak ? 180 : totalTime;
+      navigator.mediaSession.setPositionState({
+        duration: Math.max(1, curDuration),
+        playbackRate: 1.0,
+        position: Math.max(0, curPosition)
+      });
+    }
+  } catch(e) {}
+}
+
+function clearLockScreenMediaSession() {
+  document.title = 'Odak Ajandası';
+  if ('mediaSession' in navigator) {
+    try {
+      navigator.mediaSession.metadata = null;
+      if ('playbackState' in navigator.mediaSession) {
+        navigator.mediaSession.playbackState = 'none';
+      }
+    } catch(e) {}
+  }
+}
+
+if ('mediaSession' in navigator) {
+  try {
+    navigator.mediaSession.setActionHandler('pause', () => {
+      if (isFocusing && !isShortBreak) {
+        takeQuickBreak();
+      }
+    });
+    navigator.mediaSession.setActionHandler('play', () => {
+      if (isFocusing && isShortBreak) {
+        resumeFocusFromBreak();
+      }
+    });
+  } catch(e) {}
+}
+
+function saveActiveFocusSessionState() {
+  if (!isFocusing) {
+    localStorage.removeItem('ODAK_ACTIVE_FOCUS');
+    return;
+  }
+  try {
+    const data = {
+      isFocusing: true,
+      targetEndTime: focusTargetEndTime,
+      totalTime: totalTime,
+      timeLeft: timeLeft,
+      startTime: Date.now() - (totalTime - timeLeft) * 1000,
+      taskId: activeTask ? activeTask.id : null,
+      taskTitle: activeTask ? activeTask.title : null,
+      treeType: activeTask ? activeTask.treeType : '🌳',
+      treeName: activeTask ? activeTask.treeName : 'Meşe',
+      isShortBreak: isShortBreak,
+      shortBreakTargetEndTime: shortBreakTargetEndTime,
+      sessionBreaksLeft: sessionBreaksLeft
+    };
+    localStorage.setItem('ODAK_ACTIVE_FOCUS', JSON.stringify(data));
+  } catch(e) {}
+}
+
+function sendFocusCompletionNotification(taskTitle, treeType, treeName) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const title = `Tebrikler! 🎉 ${taskTitle || 'Odak Seansı'} Tamamlandı!`;
+  const options = {
+    body: `${treeType || '🌳'} ${treeName || 'Yeni Ağacın'} ormanına eklendi. Harika bir iş çıkardın!`,
+    icon: 'icons/icon-192.png',
+    badge: 'icons/icon-192.png',
+    vibrate: [200, 100, 200],
+    tag: 'odak-completed'
+  };
+  try {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.showNotification(title, options);
+      }).catch(() => {
+        new Notification(title, options);
+      });
+    } else {
+      new Notification(title, options);
+    }
+  } catch(e) {}
+}
+
+function handleVisibilityOrFocusSync() {
+  if (!isFocusing || isBreakMode) return;
+  
+  const now = Date.now();
+  if (isShortBreak && shortBreakTargetEndTime) {
+    shortBreakTimeLeft = Math.max(0, Math.round((shortBreakTargetEndTime - now) / 1000));
+    updateBreakTimerDisplay();
+    updateMiniFocusTimer();
+    updateLockScreenMediaSession();
+    if (shortBreakTimeLeft <= 0) {
+      clearInterval(breakTimerInt);
+      playChimeSound();
+      showAppToast('⏰ Mola süresi bitti! Odak devam ediyor.', '🌿');
+      resumeFocusFromBreak();
+    }
+  } else if (focusTargetEndTime) {
+    timeLeft = Math.max(0, Math.round((focusTargetEndTime - now) / 1000));
+    updateFocTimer();
+    updateMiniFocusTimer();
+    const pct = Math.min(1, Math.max(0, (totalTime - timeLeft) / totalTime));
+    setFocArc(pct);
+    updateTreeStage(pct);
+    updateLockScreenMediaSession();
+    if (timeLeft <= 0) {
+      completeFocus();
+    }
+  }
+}
+
+function restoreSavedFocusSessionIfNeeded() {
+  try {
+    const raw = localStorage.getItem('ODAK_ACTIVE_FOCUS');
+    if (!raw) return;
+    const session = JSON.parse(raw);
+    if (!session || !session.targetEndTime) return;
+
+    const now = Date.now();
+    // 24 saatten eski oturumları temizle
+    if (session.startTime && (now - session.startTime > 86400000)) {
+      localStorage.removeItem('ODAK_ACTIVE_FOCUS');
+      return;
+    }
+
+    if (session.taskId) {
+      activeTask = tasks.find(t => t.id === session.taskId) || null;
+    }
+    if (!activeTask) {
+      activeTask = {
+        id: session.taskId || 'restored-task',
+        title: session.taskTitle || 'Odaklanma Seansı',
+        dur: Math.round((session.totalTime || 1500) / 60),
+        treeType: session.treeType || '🌳',
+        treeName: session.treeName || 'Meşe'
+      };
+    }
+
+    totalTime = session.totalTime || 1500;
+
+    if (now >= session.targetEndTime) {
+      // Uygulama kapalıyken süre dolmuş! Ağacı ver ve tamamla!
+      localStorage.removeItem('ODAK_ACTIVE_FOCUS');
+      timeLeft = 0;
+      isFocusing = true;
+      document.getElementById('focus-overlay').classList.add('active');
+      completeFocus();
+      setTimeout(() => {
+        showAppToast('🎉 Odaklanma süren başarıyla tamamlandı, yeni ağacın ormanına eklendi!', '🌲');
+      }, 1000);
+    } else {
+      // Süre henüz bitmemiş, kaldığı yerden geri yükle!
+      timeLeft = Math.max(1, Math.round((session.targetEndTime - now) / 1000));
+      focusTargetEndTime = session.targetEndTime;
+      sessionBreaksLeft = typeof session.sessionBreaksLeft === 'number' ? session.sessionBreaksLeft : 1;
+      
+      document.getElementById('foc-title').textContent = activeTask.title;
+      document.getElementById('focus-overlay').classList.add('active');
+      document.getElementById('bottom-nav').style.display = 'none';
+      
+      startFocus(true);
+      setTimeout(() => {
+        showAppToast(`🌿 Odaklanma seansın devam ediyor (${Math.ceil(timeLeft/60)} dk kaldı)!`, '⏳');
+      }, 1000);
+    }
+  } catch(e) {
+    console.warn('Aktif odak seansı geri yükleme hatası:', e);
+  }
+}
 
 function updateTopBackButton(){
   const backBtn = document.getElementById('foc-btn-back');
@@ -9720,7 +9972,10 @@ function openFocus(id){
     }
     clearInterval(timerInt);
     clearInterval(breakTimerInt);
-  stopAmbientSound();
+    stopAmbientSound();
+    stopLockScreenAudio();
+    clearLockScreenMediaSession();
+    localStorage.removeItem('ODAK_ACTIVE_FOCUS');
     isFocusing = false;
     isBreakMode = false;
     isShortBreak = false;
@@ -9744,10 +9999,22 @@ function openFocus(id){
   hideMiniFocusBar();
 }
 
-function startFocus(){
+function startFocus(resumeExisting = false){
   unlockAudioContext();
   isFocusing = true;
-  timeLeft = totalTime;
+  if(!resumeExisting){
+    timeLeft = totalTime;
+    focusTargetEndTime = Date.now() + totalTime * 1000;
+  } else {
+    if(!focusTargetEndTime || focusTargetEndTime <= Date.now()){
+      focusTargetEndTime = Date.now() + timeLeft * 1000;
+    }
+  }
+  
+  saveActiveFocusSessionState();
+  ensureLockScreenAudio();
+  updateLockScreenMediaSession();
+
   document.getElementById('foc-btn-start').style.display = 'none';
   
   // Kısa Mola butonunu hazırla ve göster
@@ -9766,17 +10033,29 @@ function startFocus(){
   document.getElementById('foc-btn-water').style.display = 'none';
   document.getElementById('foc-msg').textContent = 'Ağacın büyüyor — odaklan ve üret!';
   document.getElementById('foc-ring').className = 'foc-ring growing';
-  setFocArc(0);
+  
+  const initPct = (totalTime - timeLeft) / totalTime;
+  setFocArc(initPct);
+  updateTreeStage(initPct);
+  updateFocTimer();
+  updateMiniFocusTimer();
   updateTopBackButton();
   
   clearInterval(timerInt);
   timerInt = setInterval(()=>{
-    timeLeft--;
+    const now = Date.now();
+    if(focusTargetEndTime){
+      timeLeft = Math.max(0, Math.round((focusTargetEndTime - now) / 1000));
+    } else {
+      timeLeft--;
+    }
     updateFocTimer();
     updateMiniFocusTimer();
-    const pct = (totalTime - timeLeft) / totalTime;
+    const pct = Math.min(1, Math.max(0, (totalTime - timeLeft) / totalTime));
     setFocArc(pct);
     updateTreeStage(pct);
+    updateLockScreenMediaSession();
+    saveActiveFocusSessionState();
     if(timeLeft <= 0) completeFocus();
   }, 1000);
 }
@@ -9793,6 +10072,10 @@ function takeQuickBreak(){
   clearInterval(timerInt);
 
   shortBreakTimeLeft = 180; // 3 dakika
+  shortBreakTargetEndTime = Date.now() + 180 * 1000;
+  saveActiveFocusSessionState();
+  updateLockScreenMediaSession();
+  
   const ov = document.getElementById('focus-overlay');
   ov.className = 'active state-pause-break';
 
@@ -9813,12 +10096,19 @@ function takeQuickBreak(){
   clearInterval(breakTimerInt);
   stopAmbientSound();
   breakTimerInt = setInterval(() => {
-    shortBreakTimeLeft--;
+    const now = Date.now();
+    if(shortBreakTargetEndTime){
+      shortBreakTimeLeft = Math.max(0, Math.round((shortBreakTargetEndTime - now) / 1000));
+    } else {
+      shortBreakTimeLeft--;
+    }
     updateBreakTimerDisplay();
     updateMiniFocusTimer();
+    updateLockScreenMediaSession();
+    saveActiveFocusSessionState();
     if(shortBreakTimeLeft <= 0){
       clearInterval(breakTimerInt);
-  stopAmbientSound();
+      stopAmbientSound();
       playChimeSound();
       showAppToast('⏰ Mola süresi bitti! Odak devam ediyor.', '🌿');
       resumeFocusFromBreak();
@@ -9838,6 +10128,10 @@ function resumeFocusFromBreak(){
   clearInterval(breakTimerInt);
   stopAmbientSound();
   isShortBreak = false;
+  shortBreakTargetEndTime = null;
+
+  focusTargetEndTime = Date.now() + timeLeft * 1000;
+  saveActiveFocusSessionState();
 
   const ov = document.getElementById('focus-overlay');
   ov.className = 'active';
@@ -9864,16 +10158,26 @@ function resumeFocusFromBreak(){
 
   updateTopBackButton();
   showAppToast('🌿 Odak seansına devam ediliyor!', '🌱');
+  
+  ensureLockScreenAudio();
+  updateLockScreenMediaSession();
 
   // Ana odak zamanlayıcısını kaldığı yerden devam ettir
   clearInterval(timerInt);
   timerInt = setInterval(() => {
-    timeLeft--;
+    const now = Date.now();
+    if(focusTargetEndTime){
+      timeLeft = Math.max(0, Math.round((focusTargetEndTime - now) / 1000));
+    } else {
+      timeLeft--;
+    }
     updateFocTimer();
     updateMiniFocusTimer();
-    const curPct = (totalTime - timeLeft) / totalTime;
+    const curPct = Math.min(1, Math.max(0, (totalTime - timeLeft) / totalTime));
     setFocArc(curPct);
     updateTreeStage(curPct);
+    updateLockScreenMediaSession();
+    saveActiveFocusSessionState();
     if(timeLeft <= 0) completeFocus();
   }, 1000);
 }
@@ -10008,9 +10312,14 @@ function failFocus(removedTreeInfo){
   clearInterval(timerInt);
   clearInterval(breakTimerInt);
   stopAmbientSound();
+  stopLockScreenAudio();
+  clearLockScreenMediaSession();
+  localStorage.removeItem('ODAK_ACTIVE_FOCUS');
   isFocusing = false;
   isBreakMode = false;
   isShortBreak = false;
+  focusTargetEndTime = null;
+  shortBreakTargetEndTime = null;
   hideMiniFocusBar();
 
   const ov = document.getElementById('focus-overlay');
@@ -10116,10 +10425,19 @@ function completeFocus(){
   clearInterval(timerInt);
   clearInterval(breakTimerInt);
   stopAmbientSound();
+  stopLockScreenAudio();
+  clearLockScreenMediaSession();
+  localStorage.removeItem('ODAK_ACTIVE_FOCUS');
   isFocusing = false;
   isBreakMode = false;
   isShortBreak = false;
+  focusTargetEndTime = null;
+  shortBreakTargetEndTime = null;
   hideMiniFocusBar();
+
+  if(document.hidden){
+    sendFocusCompletionNotification(activeTask?.title, activeTask?.treeType, activeTask?.treeName);
+  }
 
   playChimeSound();
 
@@ -10282,9 +10600,14 @@ function resetFocusUI(){
   clearInterval(timerInt);
   clearInterval(breakTimerInt);
   stopAmbientSound();
+  stopLockScreenAudio();
+  clearLockScreenMediaSession();
+  localStorage.removeItem('ODAK_ACTIVE_FOCUS');
   isFocusing = false;
   isBreakMode = false;
   isShortBreak = false;
+  focusTargetEndTime = null;
+  shortBreakTargetEndTime = null;
   timeLeft = totalTime;
   updateFocTimer();
   setFocArc(0);
@@ -11190,11 +11513,20 @@ function renderStats(){
 }
 
 /* ══════════════════════════════════════════════════════
-   SAYFADAN ÇIKINCA YANMA MEKANİĞİ (Page Visibility API)
+   ARKA PLAN VE KİLİT EKRANI EŞİTLEME (Page Visibility API)
    ══════════════════════════════════════════════════════ */
-document.addEventListener('visibilitychange', ()=>{
-  if(document.hidden && isFocusing && !isBreakMode) failFocus();
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    handleVisibilityOrFocusSync();
+  } else {
+    if (isFocusing) {
+      saveActiveFocusSessionState();
+      updateLockScreenMediaSession();
+    }
+  }
 });
+window.addEventListener('pageshow', handleVisibilityOrFocusSync);
+window.addEventListener('focus', handleVisibilityOrFocusSync);
 
 /* ══════════════════════════════════════════════════════
    BAŞLANGIÇ (BOOTSTRAP & AUTO-HYDRATE)
@@ -11255,6 +11587,7 @@ try {
   updateSunInfo();
   renderUserProfileUI();
   renderFriends();
+  restoreSavedFocusSessionIfNeeded();
 } catch(e) { console.warn('bootstrap render error:', e); }
 
 // Alt Menü Butonları (Bottombar) Kesintisiz Tıklama ve Yönlendirme Başlatıcı
