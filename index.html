@@ -9863,7 +9863,7 @@ function generateFocusCoverImage(curTimeLeft, curTotalTime, taskTitle, treeIco, 
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
     ctx.font = '700 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.letterSpacing = '1px';
+    if ('letterSpacing' in ctx) { try { ctx.letterSpacing = '1px'; } catch(e){} }
     ctx.fillText('🌿 ODAK AJANDASI', cx, 48);
 
     // 4. Halka Zemin (Track)
@@ -10063,10 +10063,11 @@ function syncLockScreenPosition() {
   if (!('mediaSession' in navigator) || !isFocusing) return;
   try {
     if ('setPositionState' in navigator.mediaSession) {
-      const curPosition = isShortBreak 
-        ? Math.min(180, Math.max(0, 180 - shortBreakTimeLeft))
-        : Math.min(totalTime, Math.max(0, totalTime - timeLeft));
       const curDuration = isShortBreak ? 180 : totalTime;
+      const rawPos = isShortBreak 
+        ? Math.max(0, 180 - shortBreakTimeLeft)
+        : Math.max(0, totalTime - timeLeft);
+      const curPosition = Math.min(Math.max(0, curDuration - 0.01), rawPos);
       navigator.mediaSession.setPositionState({
         duration: Math.max(1, curDuration),
         playbackRate: 1.0,
@@ -10871,8 +10872,6 @@ function completeFocus(){
   tree.textContent = treeIco;
   tree.classList.add('pop');
   document.getElementById('foc-timer').className = 'foc-timer done';
-  const statusTxt = document.getElementById('foc-status-text');
-  const cardEl = document.getElementById('foc-timer-card');
   if(statusTxt) statusTxt.textContent = 'TAMAMLANDI';
   if(cardEl) cardEl.className = 'foc-timer-card';
   document.getElementById('foc-msg').textContent = '🎉 Harika! Ağacın yetişti ve ormanına eklendi.';
@@ -12040,6 +12039,7 @@ if ('serviceWorker' in navigator && isSecureOrigin) {
     try {
       navigator.serviceWorker.register('sw.js').then((reg) => {
         console.log('✅ Odak Ajandası PWA Service Worker devrede:', reg.scope);
+        try { reg.update(); } catch(e){}
       }).catch((err) => {
         console.warn('PWA Service Worker kaydı:', err);
       });

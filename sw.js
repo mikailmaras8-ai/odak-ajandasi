@@ -1,4 +1,4 @@
-const CACHE_NAME = 'odak-pwa-v7';
+const CACHE_NAME = 'odak-pwa-v8';
 const STATIC_ASSETS = [
   './',
   'index.html',
@@ -54,20 +54,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Gezinme (Sayfa Yükleme): Anında Önbellekten Aç
+  // 2. Gezinme (Sayfa Yükleme): Network-First (En güncel sürümü anında al, çevrimdışıysa önbellekten aç)
   if (event.request.mode === 'navigate' || (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        return caches.match('./').then((rootCached) => {
-          if (rootCached) return rootCached;
-          return fetch(event.request).then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const toCache = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, toCache));
-            }
-            return networkResponse;
-          }).catch(() => caches.match('index.html'));
+      fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const toCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, toCache));
+        }
+        return networkResponse;
+      }).catch(() => {
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          return caches.match('./').then((rootCached) => {
+            return rootCached || caches.match('index.html');
+          });
         });
       })
     );
