@@ -2016,29 +2016,29 @@ body.day .foc-top{
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px 28px 12px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(82, 199, 133, 0.22);
-  border-radius: 24px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  padding: 4px 12px 6px;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
   margin: 4px 0 6px;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  min-width: 220px;
+  min-width: unset;
 }
 body.day .foc-timer-card {
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(82, 199, 133, 0.3);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 .foc-timer-card.pause-break {
-  border-color: rgba(245, 158, 11, 0.4);
-  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.16);
+  border: none !important;
+  box-shadow: none !important;
 }
 .foc-timer-card.dead {
-  border-color: rgba(239, 68, 68, 0.4);
-  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.16);
+  border: none !important;
+  box-shadow: none !important;
 }
 .foc-timer-status {
   display: inline-flex;
@@ -2053,18 +2053,18 @@ body.day .foc-timer-card {
   padding: 3px 10px;
   background: rgba(82, 199, 133, 0.12);
   border-radius: 20px;
-  border: 1px solid rgba(82, 199, 133, 0.22);
+  border: none;
   transition: all .3s ease;
 }
 .foc-timer-card.pause-break .foc-timer-status {
   color: #F59E0B;
   background: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.25);
+  border: none;
 }
 .foc-timer-card.dead .foc-timer-status {
   color: var(--danger);
   background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.25);
+  border: none;
 }
 .foc-live-dot {
   width: 6px;
@@ -2114,7 +2114,7 @@ body.day .foc-timer-card {
   .foc-timer { font-size: 52px; }
   .foc-time-part { width: 68px; }
   .foc-time-colon { width: 14px; }
-  .foc-timer-card { min-width: 180px; padding: 8px 16px 10px; }
+  .foc-timer-card { min-width: unset; padding: 2px 8px 4px; }
 }
 .foc-timer.dead {
   color: var(--danger);
@@ -8923,6 +8923,15 @@ function handleHomeIndicatorClick(){
     closeSideDrawer();
     return;
   }
+  const focOv = document.getElementById('focus-overlay');
+  if(focOv && focOv.classList.contains('active')){
+    if(isFocusing || isBreakMode || isShortBreak){
+      minimizeFocus();
+    } else {
+      closeFocusOverlay();
+    }
+    return;
+  }
   const goalModal = document.getElementById('daily-goal-modal-backdrop');
   if(goalModal && goalModal.classList.contains('active')){
     closeDailyGoalModal();
@@ -8982,6 +8991,17 @@ window.handleHomeIndicatorClick = handleHomeIndicatorClick;
 
 function goTo(id){
   if(!id) return;
+
+  // Kullanıcı aktif odaklanmıyorsa ve sadece sesleri test ettiyse arka plan seslerini kapat
+  if(!isFocusing && !isBreakMode && !isShortBreak){
+    if(currentAmbientType !== 'off'){
+      stopAmbientSound();
+    }
+    const focOv = document.getElementById('focus-overlay');
+    if(focOv && focOv.classList.contains('active')){
+      focOv.classList.remove('active');
+    }
+  }
 
   SCREENS.forEach(s => {
     const el = document.getElementById(s);
@@ -10723,6 +10743,9 @@ function closeFocusOverlay(){
   document.getElementById('focus-overlay').classList.remove('active');
   const bn = document.getElementById('bottom-nav');
   if(bn) bn.style.display = 'none';
+  if(!isFocusing && !isBreakMode && !isShortBreak && currentAmbientType !== 'off'){
+    stopAmbientSound();
+  }
 }
 
 function showMiniFocusBar(){
@@ -12094,6 +12117,8 @@ document.addEventListener('visibilitychange', () => {
       ensureLockScreenAudio();
       initLockScreenMediaSession(true);
       showLockScreenOngoingNotification();
+    } else if (currentAmbientType !== 'off') {
+      stopAmbientSound();
     }
   }
 });
