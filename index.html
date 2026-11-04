@@ -2011,11 +2011,101 @@ body.day .foc-top{
 .foc-prog-bar.break-bar{stroke:#38BDF8;}
 .foc-prog-bar.pause-break{stroke:#F59E0B;}
 
-.foc-timer{font-size:64px;font-weight:800;color:var(--text1);letter-spacing:-3px;line-height:1;text-align:center;}
-.foc-timer.dead{color:var(--danger);}
-.foc-timer.done{color:var(--accent);}
-.foc-timer.break-timer{color:#38BDF8;}
-.foc-timer.pause-break{color:#F59E0B;}
+.foc-timer-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 28px 12px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(82, 199, 133, 0.22);
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  margin: 4px 0 6px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 220px;
+}
+body.day .foc-timer-card {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(82, 199, 133, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.foc-timer-card.pause-break {
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.16);
+}
+.foc-timer-card.dead {
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.16);
+}
+.foc-timer-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 2px;
+  padding: 3px 10px;
+  background: rgba(82, 199, 133, 0.12);
+  border-radius: 20px;
+  border: 1px solid rgba(82, 199, 133, 0.22);
+  transition: all .3s ease;
+}
+.foc-timer-card.pause-break .foc-timer-status {
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+.foc-timer-card.dead .foc-timer-status {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+.foc-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  animation: focDotPulse 2s infinite ease-in-out;
+}
+@keyframes focDotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.75); }
+}
+.foc-timer {
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--text1);
+  letter-spacing: -2px;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 2px 20px rgba(82, 199, 133, 0.24);
+  transition: all .3s ease;
+}
+.foc-timer.dead {
+  color: var(--danger);
+  text-shadow: 0 2px 20px rgba(239, 68, 68, 0.25);
+}
+.foc-timer.done {
+  color: var(--accent);
+  text-shadow: 0 2px 25px rgba(82, 199, 133, 0.4);
+}
+.foc-timer.break-timer {
+  color: #38BDF8;
+  text-shadow: 0 2px 20px rgba(56, 189, 248, 0.25);
+}
+.foc-timer.pause-break {
+  color: #F59E0B;
+  text-shadow: 0 2px 20px rgba(245, 158, 11, 0.25);
+}
 .foc-msg{font-size:13px;color:var(--text2);text-align:center;min-height:20px;font-weight:500;}
 
 .foc-stages{display:flex;gap:8px;align-items:center;justify-content:center;}
@@ -4351,6 +4441,14 @@ body.day .intro-app-title {
     <div class="cam-sensor"></div>
   </div>
 
+  <!-- 🔊 Kilit Ekranı (MediaSession) & Arka Plan Ses Öğeleri (iOS & Android) -->
+  <audio id="bg-focus-audio" loop playsinline preload="auto" style="position:fixed;top:-9999px;left:-9999px;opacity:0.001;pointer-events:none;">
+    <source src="sounds/silence.m4a" type="audio/mp4">
+    <source src="sounds/silence.mp3" type="audio/mp3">
+    <source src="sounds/silence.wav" type="audio/wav">
+  </audio>
+  <audio id="ambient-audio-el" loop playsinline preload="auto" style="position:fixed;top:-9999px;left:-9999px;opacity:0.001;pointer-events:none;"></audio>
+
   <!-- ═══ TAM EKRAN ODAK OVERLAY (AĞAÇ BÜYÜTME / MOLA DÖNGÜSÜ) ═══ -->
   <div id="focus-overlay">
     <!-- Sabit Üst Başlık & Geri Dön Çubuğu (Kaydırmada Çentik Altında Asla Kaybolmaz) -->
@@ -4413,7 +4511,13 @@ body.day .intro-app-title {
         <span class="foc-tree-emoji" id="foc-tree">🌱</span>
       </div>
       
-      <div class="foc-timer" id="foc-timer">25:00</div>
+      <div class="foc-timer-card" id="foc-timer-card">
+        <div class="foc-timer-status" id="foc-timer-status">
+          <span class="foc-live-dot"></span>
+          <span id="foc-status-text">HAZIR</span>
+        </div>
+        <div class="foc-timer" id="foc-timer">25:00</div>
+      </div>
       <div class="foc-msg" id="foc-msg">Odağını topla ve tohumu ek.</div>
 
       <!-- 🎧 Ambiyans Arka Plan Sesleri (Tohumu Ek Butonunun Üstünde) -->
@@ -9678,42 +9782,201 @@ let breakTimerInt = null;
 let shortBreakTimeLeft = 180; // 3 dakika
 let focusTargetEndTime = null;
 let shortBreakTargetEndTime = null;
-let backgroundSilenceAudio = null;
+let coverCanvasEl = null;
+let lastCoverDataUrl = null;
+
+function getAbsoluteAssetUrl(relPath) {
+  try {
+    return new URL(relPath, window.location.href).href;
+  } catch(e) {
+    return relPath;
+  }
+}
+
+function generateFocusCoverImage(curTimeLeft, curTotalTime, taskTitle, treeIco, treeNm, isBreak) {
+  try {
+    if (!coverCanvasEl) {
+      coverCanvasEl = document.createElement('canvas');
+      coverCanvasEl.width = 512;
+      coverCanvasEl.height = 512;
+    }
+    const ctx = coverCanvasEl.getContext('2d');
+    if (!ctx) return null;
+
+    const w = 512, h = 512;
+    const cx = w / 2, cy = h / 2 - 12;
+    const r = 162;
+
+    // 1. Zemin
+    const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+    if (isBreak) {
+      bgGrad.addColorStop(0, '#171206');
+      bgGrad.addColorStop(1, '#090703');
+    } else {
+      bgGrad.addColorStop(0, '#0E1712');
+      bgGrad.addColorStop(0.5, '#09100C');
+      bgGrad.addColorStop(1, '#050806');
+    }
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 2. Parıltı / Glow
+    const glowGrad = ctx.createRadialGradient(cx, cy, 20, cx, cy, 210);
+    if (isBreak) {
+      glowGrad.addColorStop(0, 'rgba(245, 158, 11, 0.25)');
+      glowGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+    } else {
+      glowGrad.addColorStop(0, 'rgba(82, 199, 133, 0.26)');
+      glowGrad.addColorStop(1, 'rgba(82, 199, 133, 0)');
+    }
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 3. Üst Logo
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('🌿 ODAK AJANDASI', cx, 50);
+
+    // 4. Halka Zemin (Track)
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 14;
+    ctx.stroke();
+
+    // 5. İlerleme Yayı
+    const pct = curTotalTime > 0 ? Math.min(1, Math.max(0, (curTotalTime - curTimeLeft) / curTotalTime)) : 0;
+    if (pct > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + (pct * Math.PI * 2));
+      const arcGrad = ctx.createLinearGradient(0, 0, w, h);
+      if (isBreak) {
+        arcGrad.addColorStop(0, '#F59E0B');
+        arcGrad.addColorStop(1, '#FBBF24');
+        ctx.strokeStyle = arcGrad;
+        ctx.shadowColor = 'rgba(245, 158, 11, 0.65)';
+      } else {
+        arcGrad.addColorStop(0, '#10B981');
+        arcGrad.addColorStop(1, '#52C785');
+        ctx.strokeStyle = arcGrad;
+        ctx.shadowColor = 'rgba(82, 199, 133, 0.7)';
+      }
+      ctx.lineWidth = 14;
+      ctx.lineCap = 'round';
+      ctx.shadowBlur = 18;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 6. Merkez Ağaç Emojisi
+    ctx.font = '76px -apple-system, BlinkMacSystemFont, "Apple Color Emoji", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(treeIco || '🌱', cx, cy - 40);
+
+    // 7. Büyük Dijital Sayaç Metni (MM:SS)
+    const m = String(Math.floor(curTimeLeft / 60)).padStart(2, '0');
+    const s = String(curTimeLeft % 60).padStart(2, '0');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 56px "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${m}:${s}`, cx, cy + 38);
+
+    // 8. Görev Adı Kapsülü
+    const tTitle = taskTitle || 'Odak Seansı';
+    const displayTitle = tTitle.length > 22 ? tTitle.substring(0, 20) + '…' : tTitle;
+    
+    ctx.font = '600 17px "Plus Jakarta Sans", -apple-system, sans-serif';
+    const textWidth = ctx.measureText(displayTitle).width;
+    const pillW = Math.min(320, Math.max(140, textWidth + 36));
+    const pillH = 34;
+    const pillX = cx - pillW / 2;
+    const pillY = cy + 85;
+    
+    ctx.save();
+    ctx.fillStyle = isBreak ? 'rgba(245, 158, 11, 0.16)' : 'rgba(82, 199, 133, 0.16)';
+    ctx.strokeStyle = isBreak ? 'rgba(245, 158, 11, 0.45)' : 'rgba(82, 199, 133, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') {
+      ctx.roundRect(pillX, pillY, pillW, pillH, 17);
+    } else {
+      ctx.rect(pillX, pillY, pillW, pillH);
+    }
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = isBreak ? '#FDE68A' : '#A7F3D0';
+    ctx.font = '600 17px -apple-system, sans-serif';
+    ctx.fillText(displayTitle, cx, pillY + pillH / 2);
+
+    // 9. Alt Bilgi
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.48)';
+    ctx.font = '500 15px -apple-system, sans-serif';
+    ctx.fillText(isBreak ? '☕ 3 Dakikalık Dinlenme Molası' : `🌲 ${treeNm || 'Ağacın'} büyüyor • Odaklan`, cx, 470);
+
+    return coverCanvasEl.toDataURL('image/png');
+  } catch(e) {
+    console.warn('Canvas cover hatası:', e);
+    return null;
+  }
+}
 
 function ensureLockScreenAudio() {
-  if (currentAmbientType !== 'off' && ambientAudioEl && !ambientAudioEl.paused) {
-    return;
-  }
-  try {
-    if (!backgroundSilenceAudio) {
-      backgroundSilenceAudio = new Audio('sounds/silence.wav');
-      backgroundSilenceAudio.loop = true;
-      backgroundSilenceAudio.volume = 0.01;
+  if (currentAmbientType !== 'off') {
+    if (ambientAudioEl && !ambientAudioEl.paused) {
+      const bgAudio = document.getElementById('bg-focus-audio');
+      if (bgAudio) { try { bgAudio.pause(); } catch(e){} }
+      return;
     }
-    const p = backgroundSilenceAudio.play();
+  }
+
+  let bgAudio = document.getElementById('bg-focus-audio');
+  if (!bgAudio) {
+    bgAudio = new Audio();
+    bgAudio.id = 'bg-focus-audio';
+    bgAudio.loop = true;
+    bgAudio.playsInline = true;
+    bgAudio.src = 'sounds/silence.m4a';
+    document.body.appendChild(bgAudio);
+  }
+
+  bgAudio.volume = 0.5; // Dijital sessizlik içerdiği için 0 ses çıkarır ama iOS/Android oynatıcıyı 100% aktif tutar
+  try {
+    const p = bgAudio.play();
     if (p !== undefined) {
-      p.catch(() => {});
+      p.then(() => {
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'playing';
+        }
+      }).catch(err => {
+        console.warn('bgAudio çalma uyarısı:', err);
+      });
     }
   } catch(e) {}
 }
 
 function stopLockScreenAudio() {
-  if (backgroundSilenceAudio) {
+  const bgAudio = document.getElementById('bg-focus-audio');
+  if (bgAudio) {
     try {
-      backgroundSilenceAudio.pause();
-      backgroundSilenceAudio.currentTime = 0;
+      bgAudio.pause();
+      bgAudio.currentTime = 0;
     } catch(e) {}
   }
 }
 
-function updateLockScreenMediaSession() {
+function updateLockScreenMediaSession(forceNewCover = false) {
   if (!('mediaSession' in navigator) || !isFocusing) return;
   
   const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
   const s = String(timeLeft % 60).padStart(2, '0');
   const taskTitle = activeTask?.title || 'Odak Seansı';
-  const treeIco = activeTask?.treeType || '🌳';
-  const treeNm = activeTask?.treeName || 'Fidan';
+  const treeIco = isShortBreak ? '☕' : (activeTask?.treeType || '🌳');
+  const treeNm = isShortBreak ? 'Kısa Mola' : (activeTask?.treeName || 'Fidan');
   
   let stateTitle = '';
   let artistText = '';
@@ -9723,37 +9986,53 @@ function updateLockScreenMediaSession() {
     const bm = String(Math.floor(shortBreakTimeLeft / 60)).padStart(2, '0');
     const bs = String(shortBreakTimeLeft % 60).padStart(2, '0');
     stateTitle = `☕ Mola: ${bm}:${bs} • ${taskTitle}`;
-    artistText = 'Odak Ajandası • Dinlenme Molası';
-    albumText = 'Derin bir nefes al';
+    artistText = 'Odak Ajandası • Dinlenme Zamanı';
+    albumText = `Mola: ${bm}:${bs}`;
   } else {
     stateTitle = `🌿 ${m}:${s} • ${taskTitle}`;
-    artistText = `Odak Ajandası • ${treeIco} ${treeNm} Büyüyor`;
+    artistText = `${treeIco} ${treeNm} Büyüyor • Odak Ajandası`;
     albumText = `Kalan: ${m}:${s} • Hedef: ${Math.round(totalTime / 60)} dk`;
     document.title = `(${m}:${s}) 🌿 Odak Ajandası`;
   }
-  
+
+  const curTime = isShortBreak ? shortBreakTimeLeft : timeLeft;
+  const curTotal = isShortBreak ? 180 : totalTime;
+  if (forceNewCover || !lastCoverDataUrl || (curTime % 10 === 0)) {
+    const newCover = generateFocusCoverImage(curTime, curTotal, taskTitle, treeIco, treeNm, isShortBreak);
+    if (newCover) {
+      lastCoverDataUrl = newCover;
+    }
+  }
+
+  const artworks = [];
+  if (lastCoverDataUrl) {
+    artworks.push({ src: lastCoverDataUrl, sizes: '512x512', type: 'image/png' });
+  }
+  artworks.push({ src: getAbsoluteAssetUrl('icons/icon-512.png'), sizes: '512x512', type: 'image/png' });
+  artworks.push({ src: getAbsoluteAssetUrl('icons/icon-192.png'), sizes: '192x192', type: 'image/png' });
+  artworks.push({ src: getAbsoluteAssetUrl('icons/apple-touch-icon.png'), sizes: '180x180', type: 'image/png' });
+
   try {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: stateTitle,
       artist: artistText,
       album: albumText,
-      artwork: [
-        { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-        { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-        { src: 'icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
-      ]
+      artwork: artworks
     });
 
     if ('setPositionState' in navigator.mediaSession) {
       const curPosition = isShortBreak 
-        ? Math.min(180, 180 - shortBreakTimeLeft)
-        : Math.min(totalTime, totalTime - timeLeft);
+        ? Math.min(180, Math.max(0, 180 - shortBreakTimeLeft))
+        : Math.min(totalTime, Math.max(0, totalTime - timeLeft));
       const curDuration = isShortBreak ? 180 : totalTime;
       navigator.mediaSession.setPositionState({
         duration: Math.max(1, curDuration),
         playbackRate: 1.0,
-        position: Math.max(0, curPosition)
+        position: curPosition
       });
+    }
+    if ('playbackState' in navigator.mediaSession) {
+      navigator.mediaSession.playbackState = 'playing';
     }
   } catch(e) {}
 }
@@ -10013,7 +10292,7 @@ function startFocus(resumeExisting = false){
   
   saveActiveFocusSessionState();
   ensureLockScreenAudio();
-  updateLockScreenMediaSession();
+  updateLockScreenMediaSession(true);
 
   document.getElementById('foc-btn-start').style.display = 'none';
   
@@ -10074,7 +10353,7 @@ function takeQuickBreak(){
   shortBreakTimeLeft = 180; // 3 dakika
   shortBreakTargetEndTime = Date.now() + 180 * 1000;
   saveActiveFocusSessionState();
-  updateLockScreenMediaSession();
+  updateLockScreenMediaSession(true);
   
   const ov = document.getElementById('focus-overlay');
   ov.className = 'active state-pause-break';
@@ -10160,7 +10439,7 @@ function resumeFocusFromBreak(){
   showAppToast('🌿 Odak seansına devam ediliyor!', '🌱');
   
   ensureLockScreenAudio();
-  updateLockScreenMediaSession();
+  updateLockScreenMediaSession(true);
 
   // Ana odak zamanlayıcısını kaldığı yerden devam ettir
   clearInterval(timerInt);
@@ -10330,6 +10609,10 @@ function failFocus(removedTreeInfo){
   tree.classList.add('pop');
   document.getElementById('foc-arc').classList.add('dead');
   document.getElementById('foc-timer').className = 'foc-timer dead';
+  const statusTxt = document.getElementById('foc-status-text');
+  const cardEl = document.getElementById('foc-timer-card');
+  if(statusTxt) statusTxt.textContent = 'PES EDİLDİ';
+  if(cardEl) cardEl.className = 'foc-timer-card dead';
   
   if(removedTreeInfo){
     document.getElementById('foc-msg').innerHTML = `<span style="color:var(--danger);font-weight:700;">Pes ettin:</span> 1 ağaç (${removedTreeInfo.treeName || 'Ağaç'} ${removedTreeInfo.treeType || '🌲'}) kurudu ve ormanından eksildi!`;
@@ -10434,6 +10717,11 @@ function completeFocus(){
   focusTargetEndTime = null;
   shortBreakTargetEndTime = null;
   hideMiniFocusBar();
+
+  const statusTxt = document.getElementById('foc-status-text');
+  const cardEl = document.getElementById('foc-timer-card');
+  if(statusTxt) statusTxt.textContent = 'TAMAMLANDI 🎉';
+  if(cardEl) cardEl.className = 'foc-timer-card';
 
   if(document.hidden){
     sendFocusCompletionNotification(activeTask?.title, activeTask?.treeType, activeTask?.treeName);
@@ -10615,6 +10903,11 @@ function resetFocusUI(){
   updateTopBackButton();
   initSessionBreaks();
   
+  const statusTxt = document.getElementById('foc-status-text');
+  const cardEl = document.getElementById('foc-timer-card');
+  if(statusTxt) statusTxt.textContent = 'HAZIR';
+  if(cardEl) cardEl.className = 'foc-timer-card';
+  
   document.getElementById('foc-state-lbl').textContent = 'ODAKLANILAN GÖREV';
   if(activeTask && activeTask.title){
     document.getElementById('foc-title').textContent = activeTask.title;
@@ -10645,7 +10938,23 @@ function resetFocusUI(){
 function updateFocTimer(){
   const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
   const s = String(timeLeft % 60).padStart(2, '0');
-  document.getElementById('foc-timer').textContent = `${m}:${s}`;
+  const timerEl = document.getElementById('foc-timer');
+  if(timerEl) timerEl.textContent = `${m}:${s}`;
+  
+  const statusTxt = document.getElementById('foc-status-text');
+  const cardEl = document.getElementById('foc-timer-card');
+  if(statusTxt){
+    if(isShortBreak){
+      statusTxt.textContent = 'KISA MOLA';
+      if(cardEl) cardEl.className = 'foc-timer-card pause-break';
+    } else if(isFocusing){
+      statusTxt.textContent = 'CANLI ODAK';
+      if(cardEl) cardEl.className = 'foc-timer-card';
+    } else {
+      statusTxt.textContent = 'HAZIR';
+      if(cardEl) cardEl.className = 'foc-timer-card';
+    }
+  }
 }
 function setFocArc(pct){
   const c = 2 * Math.PI * 120;

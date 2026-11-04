@@ -1,4 +1,4 @@
-const CACHE_NAME = 'odak-pwa-v5';
+const CACHE_NAME = 'odak-pwa-v6';
 const STATIC_ASSETS = [
   './',
   'index.html',
@@ -10,6 +10,8 @@ const STATIC_ASSETS = [
   'sounds/forest.mp3',
   'sounds/cafe.mp3',
   'sounds/waves.mp3',
+  'sounds/silence.m4a',
+  'sounds/silence.mp3',
   'sounds/silence.wav'
 ];
 
