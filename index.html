@@ -2079,16 +2079,42 @@ body.day .foc-timer-card {
   50% { opacity: 0.35; transform: scale(0.75); }
 }
 .foc-timer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
   font-size: 64px;
   font-weight: 800;
   color: var(--text1);
-  letter-spacing: -2px;
+  letter-spacing: 0;
   line-height: 1;
   text-align: center;
   text-shadow: 0 2px 20px rgba(82, 199, 133, 0.24);
-  transition: all .3s ease;
+  transition: color .3s ease, text-shadow .3s ease;
+  user-select: none;
+}
+.foc-time-part {
+  display: inline-block;
+  width: 82px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.foc-time-colon {
+  display: inline-block;
+  width: 18px;
+  text-align: center;
+  opacity: 0.9;
+  position: relative;
+  top: -2px;
+}
+@media (max-width: 360px) {
+  .foc-timer { font-size: 52px; }
+  .foc-time-part { width: 68px; }
+  .foc-time-colon { width: 14px; }
+  .foc-timer-card { min-width: 180px; padding: 8px 16px 10px; }
 }
 .foc-timer.dead {
   color: var(--danger);
@@ -4516,7 +4542,7 @@ body.day .intro-app-title {
           <span class="foc-live-dot"></span>
           <span id="foc-status-text">HAZIR</span>
         </div>
-        <div class="foc-timer" id="foc-timer">25:00</div>
+        <div class="foc-timer" id="foc-timer"><span class="foc-time-part foc-time-min" id="foc-time-min">25</span><span class="foc-time-colon">:</span><span class="foc-time-part foc-time-sec" id="foc-time-sec">00</span></div>
       </div>
       <div class="foc-msg" id="foc-msg">Odağını topla ve tohumu ek.</div>
 
@@ -9804,85 +9830,87 @@ function generateFocusCoverImage(curTimeLeft, curTotalTime, taskTitle, treeIco, 
     if (!ctx) return null;
 
     const w = 512, h = 512;
-    const cx = w / 2, cy = h / 2 - 12;
-    const r = 162;
+    const cx = w / 2, cy = h / 2 - 8;
+    const r = 160;
 
-    // 1. Zemin
+    // 1. Zemin - Koyu Lüks Degrade
     const bgGrad = ctx.createLinearGradient(0, 0, w, h);
     if (isBreak) {
-      bgGrad.addColorStop(0, '#171206');
-      bgGrad.addColorStop(1, '#090703');
+      bgGrad.addColorStop(0, '#1A1208');
+      bgGrad.addColorStop(0.5, '#120C04');
+      bgGrad.addColorStop(1, '#080502');
     } else {
-      bgGrad.addColorStop(0, '#0E1712');
-      bgGrad.addColorStop(0.5, '#09100C');
-      bgGrad.addColorStop(1, '#050806');
+      bgGrad.addColorStop(0, '#0D1A14');
+      bgGrad.addColorStop(0.5, '#09120E');
+      bgGrad.addColorStop(1, '#050A07');
     }
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
 
     // 2. Parıltı / Glow
-    const glowGrad = ctx.createRadialGradient(cx, cy, 20, cx, cy, 210);
+    const glowGrad = ctx.createRadialGradient(cx, cy, 30, cx, cy, 220);
     if (isBreak) {
-      glowGrad.addColorStop(0, 'rgba(245, 158, 11, 0.25)');
+      glowGrad.addColorStop(0, 'rgba(245, 158, 11, 0.28)');
       glowGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
     } else {
-      glowGrad.addColorStop(0, 'rgba(82, 199, 133, 0.26)');
+      glowGrad.addColorStop(0, 'rgba(82, 199, 133, 0.3)');
       glowGrad.addColorStop(1, 'rgba(82, 199, 133, 0)');
     }
     ctx.fillStyle = glowGrad;
     ctx.fillRect(0, 0, w, h);
 
-    // 3. Üst Logo
+    // 3. Üst Başlık
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('🌿 ODAK AJANDASI', cx, 50);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+    ctx.font = '700 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.letterSpacing = '1px';
+    ctx.fillText('🌿 ODAK AJANDASI', cx, 48);
 
     // 4. Halka Zemin (Track)
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-    ctx.lineWidth = 14;
+    ctx.strokeStyle = isBreak ? 'rgba(245, 158, 11, 0.15)' : 'rgba(82, 199, 133, 0.15)';
+    ctx.lineWidth = 12;
     ctx.stroke();
 
-    // 5. İlerleme Yayı
-    const pct = curTotalTime > 0 ? Math.min(1, Math.max(0, (curTotalTime - curTimeLeft) / curTotalTime)) : 0;
-    if (pct > 0) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + (pct * Math.PI * 2));
-      const arcGrad = ctx.createLinearGradient(0, 0, w, h);
-      if (isBreak) {
-        arcGrad.addColorStop(0, '#F59E0B');
-        arcGrad.addColorStop(1, '#FBBF24');
-        ctx.strokeStyle = arcGrad;
-        ctx.shadowColor = 'rgba(245, 158, 11, 0.65)';
-      } else {
-        arcGrad.addColorStop(0, '#10B981');
-        arcGrad.addColorStop(1, '#52C785');
-        ctx.strokeStyle = arcGrad;
-        ctx.shadowColor = 'rgba(82, 199, 133, 0.7)';
-      }
-      ctx.lineWidth = 14;
-      ctx.lineCap = 'round';
-      ctx.shadowBlur = 18;
-      ctx.stroke();
-      ctx.restore();
+    // 5. Dekoratif Parlak Halka
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, -Math.PI / 2, Math.PI * 1.5);
+    const arcGrad = ctx.createLinearGradient(0, 0, w, h);
+    if (isBreak) {
+      arcGrad.addColorStop(0, '#F59E0B');
+      arcGrad.addColorStop(1, '#FBBF24');
+      ctx.strokeStyle = arcGrad;
+      ctx.shadowColor = 'rgba(245, 158, 11, 0.6)';
+    } else {
+      arcGrad.addColorStop(0, '#10B981');
+      arcGrad.addColorStop(1, '#52C785');
+      ctx.strokeStyle = arcGrad;
+      ctx.shadowColor = 'rgba(82, 199, 133, 0.65)';
     }
+    ctx.lineWidth = 12;
+    ctx.lineCap = 'round';
+    ctx.shadowBlur = 16;
+    ctx.stroke();
+    ctx.restore();
 
     // 6. Merkez Ağaç Emojisi
-    ctx.font = '76px -apple-system, BlinkMacSystemFont, "Apple Color Emoji", sans-serif';
+    ctx.font = '82px -apple-system, BlinkMacSystemFont, "Apple Color Emoji", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(treeIco || '🌱', cx, cy - 40);
+    ctx.fillText(treeIco || '🌱', cx, cy - 38);
 
-    // 7. Büyük Dijital Sayaç Metni (MM:SS)
-    const m = String(Math.floor(curTimeLeft / 60)).padStart(2, '0');
-    const s = String(curTimeLeft % 60).padStart(2, '0');
+    // 7. Hedef Süre / Rozet
+    const totalMin = Math.max(1, Math.round(curTotalTime / 60));
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 56px "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.font = 'bold 36px "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`${m}:${s}`, cx, cy + 38);
+    ctx.fillText(isBreak ? '3 DAKİKA' : `${totalMin} DAKİKA`, cx, cy + 38);
+
+    ctx.font = '700 13px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = isBreak ? '#FDE68A' : '#A7F3D0';
+    ctx.fillText(isBreak ? '☕ DİNLENME MOLASI' : '🎯 HEDEF ODAKLANMA', cx, cy + 70);
 
     // 8. Görev Adı Kapsülü
     const tTitle = taskTitle || 'Odak Seansı';
@@ -9893,7 +9921,7 @@ function generateFocusCoverImage(curTimeLeft, curTotalTime, taskTitle, treeIco, 
     const pillW = Math.min(320, Math.max(140, textWidth + 36));
     const pillH = 34;
     const pillX = cx - pillW / 2;
-    const pillY = cy + 85;
+    const pillY = cy + 104;
     
     ctx.save();
     ctx.fillStyle = isBreak ? 'rgba(245, 158, 11, 0.16)' : 'rgba(82, 199, 133, 0.16)';
@@ -9914,9 +9942,9 @@ function generateFocusCoverImage(curTimeLeft, curTotalTime, taskTitle, treeIco, 
     ctx.fillText(displayTitle, cx, pillY + pillH / 2);
 
     // 9. Alt Bilgi
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.48)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.font = '500 15px -apple-system, sans-serif';
-    ctx.fillText(isBreak ? '☕ 3 Dakikalık Dinlenme Molası' : `🌲 ${treeNm || 'Ağacın'} büyüyor • Odaklan`, cx, 470);
+    ctx.fillText(isBreak ? '☕ Derin nefes al • Dinlen' : `🌲 ${treeNm || 'Ağacın'} büyüyor • Canlı Takip`, cx, 472);
 
     return coverCanvasEl.toDataURL('image/png');
   } catch(e) {
@@ -9944,8 +9972,11 @@ function ensureLockScreenAudio() {
     document.body.appendChild(bgAudio);
   }
 
-  bgAudio.volume = 0.5; // Dijital sessizlik içerdiği için 0 ses çıkarır ama iOS/Android oynatıcıyı 100% aktif tutar
+  bgAudio.volume = 0.5; // Dijital sessizlik içerir, 0 ses çıkarır ama iOS/Android kilit ekranını 100% aktif tutar
   try {
+    if (bgAudio.paused || bgAudio.ended) {
+      bgAudio.currentTime = 0;
+    }
     const p = bgAudio.play();
     if (p !== undefined) {
       p.then(() => {
@@ -9969,15 +10000,15 @@ function stopLockScreenAudio() {
   }
 }
 
-function updateLockScreenMediaSession(forceNewCover = false) {
+function initLockScreenMediaSession(forceNewCover = false) {
   if (!('mediaSession' in navigator) || !isFocusing) return;
-  
+
   const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
   const s = String(timeLeft % 60).padStart(2, '0');
   const taskTitle = activeTask?.title || 'Odak Seansı';
   const treeIco = isShortBreak ? '☕' : (activeTask?.treeType || '🌳');
   const treeNm = isShortBreak ? 'Kısa Mola' : (activeTask?.treeName || 'Fidan');
-  
+
   let stateTitle = '';
   let artistText = '';
   let albumText = '';
@@ -9985,8 +10016,8 @@ function updateLockScreenMediaSession(forceNewCover = false) {
   if (isShortBreak) {
     const bm = String(Math.floor(shortBreakTimeLeft / 60)).padStart(2, '0');
     const bs = String(shortBreakTimeLeft % 60).padStart(2, '0');
-    stateTitle = `☕ Mola: ${bm}:${bs} • ${taskTitle}`;
-    artistText = 'Odak Ajandası • Dinlenme Zamanı';
+    stateTitle = `☕ ${bm}:${bs} • ${taskTitle}`;
+    artistText = 'Odak Ajandası • Dinlenme Molası';
     albumText = `Mola: ${bm}:${bs}`;
   } else {
     stateTitle = `🌿 ${m}:${s} • ${taskTitle}`;
@@ -9997,7 +10028,7 @@ function updateLockScreenMediaSession(forceNewCover = false) {
 
   const curTime = isShortBreak ? shortBreakTimeLeft : timeLeft;
   const curTotal = isShortBreak ? 180 : totalTime;
-  if (forceNewCover || !lastCoverDataUrl || (curTime % 10 === 0)) {
+  if (forceNewCover || !lastCoverDataUrl) {
     const newCover = generateFocusCoverImage(curTime, curTotal, taskTitle, treeIco, treeNm, isShortBreak);
     if (newCover) {
       lastCoverDataUrl = newCover;
@@ -10020,6 +10051,17 @@ function updateLockScreenMediaSession(forceNewCover = false) {
       artwork: artworks
     });
 
+    syncLockScreenPosition();
+
+    if ('playbackState' in navigator.mediaSession) {
+      navigator.mediaSession.playbackState = 'playing';
+    }
+  } catch(e) {}
+}
+
+function syncLockScreenPosition() {
+  if (!('mediaSession' in navigator) || !isFocusing) return;
+  try {
     if ('setPositionState' in navigator.mediaSession) {
       const curPosition = isShortBreak 
         ? Math.min(180, Math.max(0, 180 - shortBreakTimeLeft))
@@ -10031,10 +10073,43 @@ function updateLockScreenMediaSession(forceNewCover = false) {
         position: curPosition
       });
     }
-    if ('playbackState' in navigator.mediaSession) {
-      navigator.mediaSession.playbackState = 'playing';
+  } catch(e) {}
+}
+
+function updateLockScreenTitleOnly() {
+  if (!('mediaSession' in navigator) || !isFocusing) return;
+  const taskTitle = activeTask?.title || 'Odak Seansı';
+  let stateTitle = '';
+  let albumText = '';
+
+  if (isShortBreak) {
+    const bm = String(Math.floor(shortBreakTimeLeft / 60)).padStart(2, '0');
+    const bs = String(shortBreakTimeLeft % 60).padStart(2, '0');
+    stateTitle = `☕ ${bm}:${bs} • ${taskTitle}`;
+    albumText = `Mola: ${bm}:${bs} • Odak Ajandası`;
+    document.title = `(${bm}:${bs}) ☕ Mola • Odak Ajandası`;
+  } else {
+    const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+    const s = String(timeLeft % 60).padStart(2, '0');
+    stateTitle = `🌿 ${m}:${s} • ${taskTitle}`;
+    albumText = `Kalan: ${m}:${s} • Hedef: ${Math.round(totalTime / 60)} dk`;
+    document.title = `(${m}:${s}) 🌿 Odak Ajandası`;
+  }
+
+  try {
+    if (navigator.mediaSession.metadata) {
+      navigator.mediaSession.metadata.title = stateTitle;
+      navigator.mediaSession.metadata.album = albumText;
     }
   } catch(e) {}
+}
+
+function updateLockScreenMediaSession(forceNewCover = false) {
+  if (forceNewCover) {
+    initLockScreenMediaSession(true);
+  } else {
+    updateLockScreenTitleOnly();
+  }
 }
 
 function clearLockScreenMediaSession() {
@@ -10116,10 +10191,11 @@ function handleVisibilityOrFocusSync() {
   
   const now = Date.now();
   if (isShortBreak && shortBreakTargetEndTime) {
-    shortBreakTimeLeft = Math.max(0, Math.round((shortBreakTargetEndTime - now) / 1000));
+    shortBreakTimeLeft = Math.max(0, Math.ceil((shortBreakTargetEndTime - now) / 1000));
     updateBreakTimerDisplay();
     updateMiniFocusTimer();
-    updateLockScreenMediaSession();
+    updateLockScreenTitleOnly();
+    syncLockScreenPosition();
     if (shortBreakTimeLeft <= 0) {
       clearInterval(breakTimerInt);
       playChimeSound();
@@ -10127,13 +10203,14 @@ function handleVisibilityOrFocusSync() {
       resumeFocusFromBreak();
     }
   } else if (focusTargetEndTime) {
-    timeLeft = Math.max(0, Math.round((focusTargetEndTime - now) / 1000));
+    timeLeft = Math.max(0, Math.ceil((focusTargetEndTime - now) / 1000));
     updateFocTimer();
     updateMiniFocusTimer();
     const pct = Math.min(1, Math.max(0, (totalTime - timeLeft) / totalTime));
     setFocArc(pct);
     updateTreeStage(pct);
-    updateLockScreenMediaSession();
+    updateLockScreenTitleOnly();
+    syncLockScreenPosition();
     if (timeLeft <= 0) {
       completeFocus();
     }
@@ -10292,7 +10369,7 @@ function startFocus(resumeExisting = false){
   
   saveActiveFocusSessionState();
   ensureLockScreenAudio();
-  updateLockScreenMediaSession(true);
+  initLockScreenMediaSession(true);
 
   document.getElementById('foc-btn-start').style.display = 'none';
   
@@ -10321,22 +10398,32 @@ function startFocus(resumeExisting = false){
   updateTopBackButton();
   
   clearInterval(timerInt);
-  timerInt = setInterval(()=>{
+  timerInt = setInterval(() => {
     const now = Date.now();
-    if(focusTargetEndTime){
-      timeLeft = Math.max(0, Math.round((focusTargetEndTime - now) / 1000));
+    let computedSec = timeLeft;
+    if (focusTargetEndTime) {
+      computedSec = Math.max(0, Math.ceil((focusTargetEndTime - now) / 1000));
     } else {
-      timeLeft--;
+      computedSec = Math.max(0, timeLeft - 1);
     }
-    updateFocTimer();
-    updateMiniFocusTimer();
-    const pct = Math.min(1, Math.max(0, (totalTime - timeLeft) / totalTime));
-    setFocArc(pct);
-    updateTreeStage(pct);
-    updateLockScreenMediaSession();
-    saveActiveFocusSessionState();
-    if(timeLeft <= 0) completeFocus();
-  }, 1000);
+    
+    // Strict monotonic countdown: can only decrease, prevents any jumping back and forth
+    if (computedSec < timeLeft) {
+      timeLeft = computedSec;
+      updateFocTimer();
+      updateMiniFocusTimer();
+      const pct = Math.min(1, Math.max(0, (totalTime - timeLeft) / totalTime));
+      setFocArc(pct);
+      updateTreeStage(pct);
+      updateLockScreenTitleOnly();
+      saveActiveFocusSessionState();
+    }
+    
+    if (timeLeft <= 0) {
+      clearInterval(timerInt);
+      completeFocus();
+    }
+  }, 250);
 }
 
 function takeQuickBreak(){
@@ -10353,7 +10440,7 @@ function takeQuickBreak(){
   shortBreakTimeLeft = 180; // 3 dakika
   shortBreakTargetEndTime = Date.now() + 180 * 1000;
   saveActiveFocusSessionState();
-  updateLockScreenMediaSession(true);
+  initLockScreenMediaSession(true);
   
   const ov = document.getElementById('focus-overlay');
   ov.className = 'active state-pause-break';
@@ -10376,29 +10463,43 @@ function takeQuickBreak(){
   stopAmbientSound();
   breakTimerInt = setInterval(() => {
     const now = Date.now();
-    if(shortBreakTargetEndTime){
-      shortBreakTimeLeft = Math.max(0, Math.round((shortBreakTargetEndTime - now) / 1000));
+    let computedSec = shortBreakTimeLeft;
+    if (shortBreakTargetEndTime) {
+      computedSec = Math.max(0, Math.ceil((shortBreakTargetEndTime - now) / 1000));
     } else {
-      shortBreakTimeLeft--;
+      computedSec = Math.max(0, shortBreakTimeLeft - 1);
     }
-    updateBreakTimerDisplay();
-    updateMiniFocusTimer();
-    updateLockScreenMediaSession();
-    saveActiveFocusSessionState();
-    if(shortBreakTimeLeft <= 0){
+    
+    if (computedSec < shortBreakTimeLeft) {
+      shortBreakTimeLeft = computedSec;
+      updateBreakTimerDisplay();
+      updateMiniFocusTimer();
+      updateLockScreenTitleOnly();
+      saveActiveFocusSessionState();
+    }
+    
+    if (shortBreakTimeLeft <= 0) {
       clearInterval(breakTimerInt);
       stopAmbientSound();
       playChimeSound();
       showAppToast('⏰ Mola süresi bitti! Odak devam ediyor.', '🌿');
       resumeFocusFromBreak();
     }
-  }, 1000);
+  }, 250);
 }
 
 function updateBreakTimerDisplay(){
   const m = String(Math.floor(shortBreakTimeLeft / 60)).padStart(2, '0');
   const s = String(shortBreakTimeLeft % 60).padStart(2, '0');
-  document.getElementById('foc-timer').textContent = `${m}:${s}`;
+  const minEl = document.getElementById('foc-time-min');
+  const secEl = document.getElementById('foc-time-sec');
+  const timerEl = document.getElementById('foc-timer');
+  if (minEl && secEl) {
+    if (minEl.textContent !== m) minEl.textContent = m;
+    if (secEl.textContent !== s) secEl.textContent = s;
+  } else if (timerEl) {
+    timerEl.innerHTML = `<span class="foc-time-part foc-time-min" id="foc-time-min">${m}</span><span class="foc-time-colon">:</span><span class="foc-time-part foc-time-sec" id="foc-time-sec">${s}</span>`;
+  }
   const pct = (180 - shortBreakTimeLeft) / 180;
   setFocArc(pct);
 }
@@ -10439,26 +10540,35 @@ function resumeFocusFromBreak(){
   showAppToast('🌿 Odak seansına devam ediliyor!', '🌱');
   
   ensureLockScreenAudio();
-  updateLockScreenMediaSession(true);
+  initLockScreenMediaSession(true);
 
   // Ana odak zamanlayıcısını kaldığı yerden devam ettir
   clearInterval(timerInt);
   timerInt = setInterval(() => {
     const now = Date.now();
-    if(focusTargetEndTime){
-      timeLeft = Math.max(0, Math.round((focusTargetEndTime - now) / 1000));
+    let computedSec = timeLeft;
+    if (focusTargetEndTime) {
+      computedSec = Math.max(0, Math.ceil((focusTargetEndTime - now) / 1000));
     } else {
-      timeLeft--;
+      computedSec = Math.max(0, timeLeft - 1);
     }
-    updateFocTimer();
-    updateMiniFocusTimer();
-    const curPct = Math.min(1, Math.max(0, (totalTime - timeLeft) / totalTime));
-    setFocArc(curPct);
-    updateTreeStage(curPct);
-    updateLockScreenMediaSession();
-    saveActiveFocusSessionState();
-    if(timeLeft <= 0) completeFocus();
-  }, 1000);
+    
+    if (computedSec < timeLeft) {
+      timeLeft = computedSec;
+      updateFocTimer();
+      updateMiniFocusTimer();
+      const curPct = Math.min(1, Math.max(0, (totalTime - timeLeft) / totalTime));
+      setFocArc(curPct);
+      updateTreeStage(curPct);
+      updateLockScreenTitleOnly();
+      saveActiveFocusSessionState();
+    }
+    
+    if (timeLeft <= 0) {
+      clearInterval(timerInt);
+      completeFocus();
+    }
+  }, 250);
 }
 
 function minimizeFocus(){
@@ -10761,6 +10871,10 @@ function completeFocus(){
   tree.textContent = treeIco;
   tree.classList.add('pop');
   document.getElementById('foc-timer').className = 'foc-timer done';
+  const statusTxt = document.getElementById('foc-status-text');
+  const cardEl = document.getElementById('foc-timer-card');
+  if(statusTxt) statusTxt.textContent = 'TAMAMLANDI';
+  if(cardEl) cardEl.className = 'foc-timer-card';
   document.getElementById('foc-msg').textContent = '🎉 Harika! Ağacın yetişti ve ormanına eklendi.';
   
   document.getElementById('foc-btn-pause-break').style.display = 'none';
@@ -10938,8 +11052,15 @@ function resetFocusUI(){
 function updateFocTimer(){
   const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
   const s = String(timeLeft % 60).padStart(2, '0');
+  const minEl = document.getElementById('foc-time-min');
+  const secEl = document.getElementById('foc-time-sec');
   const timerEl = document.getElementById('foc-timer');
-  if(timerEl) timerEl.textContent = `${m}:${s}`;
+  if (minEl && secEl) {
+    if (minEl.textContent !== m) minEl.textContent = m;
+    if (secEl.textContent !== s) secEl.textContent = s;
+  } else if (timerEl) {
+    timerEl.innerHTML = `<span class="foc-time-part foc-time-min" id="foc-time-min">${m}</span><span class="foc-time-colon">:</span><span class="foc-time-part foc-time-sec" id="foc-time-sec">${s}</span>`;
+  }
   
   const statusTxt = document.getElementById('foc-status-text');
   const cardEl = document.getElementById('foc-timer-card');
