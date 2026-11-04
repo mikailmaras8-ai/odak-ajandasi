@@ -3317,104 +3317,6 @@ body.day .foc-ambient-bar {
   color: var(--danger);
 }
 
-/* 📱 Kilit Ekranı & Arka Plan Modu Seçici (Ses & Mikrofon Dostu vs Medya Kartı) */
-.foc-lock-mode-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  max-width: 320px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 8px 10px;
-  margin: 4px 0 2px;
-  box-sizing: border-box;
-}
-body.day .foc-lock-mode-section {
-  background: rgba(0, 0, 0, 0.02);
-}
-.foc-lock-mode-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin-bottom: 6px;
-}
-.foc-lock-mode-title {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text1);
-}
-.foc-lock-mode-badge {
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 8px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  border: 1px solid rgba(82, 199, 133, 0.3);
-  transition: all .2s ease;
-}
-.foc-lock-mode-bar {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 10px;
-  padding: 2px;
-  gap: 3px;
-  box-sizing: border-box;
-}
-body.day .foc-lock-mode-bar {
-  background: rgba(0, 0, 0, 0.05);
-}
-.lock-mode-pill {
-  flex: 1;
-  background: transparent;
-  border: none;
-  border-radius: 8px;
-  padding: 6px 6px;
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--text3);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  transition: all .15s ease;
-  white-space: nowrap;
-}
-.lock-mode-pill:hover {
-  color: var(--text1);
-}
-.lock-mode-pill.active {
-  background: var(--surface);
-  color: var(--accent);
-  font-weight: 700;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-}
-body.day .lock-mode-pill.active {
-  background: #fff;
-  color: var(--accent);
-}
-.foc-lock-mode-desc {
-  width: 100%;
-  font-size: 9.5px;
-  line-height: 1.35;
-  color: var(--text3);
-  text-align: center;
-  margin-top: 5px;
-  transition: all .2s ease;
-}
-
 /* ══════════════════════════════════════════════════════
    GÜNLÜK ODAK HEDEFİ & RİTİM (ESTETİK & FOREST UYUMLU HERO KARTI)
    ══════════════════════════════════════════════════════ */
@@ -4674,28 +4576,6 @@ body.day .intro-app-title {
 
         <button class="btn-water" id="foc-btn-water" style="display:none;" onclick="startWateringBreak()">💧 Fidanı Sula & 5 Dk Dinlen</button>
         <button class="btn-ghost" id="foc-btn-giveup" style="display:none;" onclick="giveUpFocus()">🥀 Pes Et</button>
-      </div>
-
-      <!-- 📱 Kilit Ekranı & Arka Plan Modu -->
-      <div class="foc-lock-mode-section" id="foc-lock-mode-section">
-        <div class="foc-lock-mode-header">
-          <div class="foc-lock-mode-title">
-            <span id="foc-lock-mode-icon">🛡️</span>
-            <span>Kilit Ekranı & Arka Plan</span>
-          </div>
-          <span class="foc-lock-mode-badge" id="foc-lock-mode-badge">Ses Dostu</span>
-        </div>
-        <div class="foc-lock-mode-bar">
-          <button type="button" class="lock-mode-pill active" id="mode-btn-voice" onclick="setLockScreenMode('voice-friendly')">
-            🛡️ Ses Dostu (Önerilen)
-          </button>
-          <button type="button" class="lock-mode-pill" id="mode-btn-media" onclick="setLockScreenMode('media-card')">
-            🎵 Medya Kartı (Opsiyonel)
-          </button>
-        </div>
-        <div class="foc-lock-mode-desc" id="foc-lock-mode-desc">
-          WhatsApp sesli mesajları ve Spotify ile %100 uyumludur. Mikrofonu engellemez, arka planda saat gibi dakik çalışır.
-        </div>
       </div>
 
       <!-- 📴 Derin Odak Modu -->
@@ -10074,74 +9954,11 @@ function generateFocusCoverImage(curTimeLeft, curTotalTime, taskTitle, treeIco, 
 }
 
 // ══════════════════════════════════════════════════════
-// KİLİT EKRANI & ARKA PLAN MOTORU (SES DOSTU & SIFIR ÇAKIŞMA)
+// KİLİT EKRANI & ARKA PLAN MOTORU (OTOMATİK DEVREYE GİRME & SIFIR ÇAKIŞMA)
 // ══════════════════════════════════════════════════════
-let lockScreenMode = localStorage.getItem('ODAK_LOCK_SCREEN_MODE') || 'voice-friendly';
 let lastLockScreenMinute = -1;
 
-function setLockScreenMode(mode) {
-  if (mode !== 'voice-friendly' && mode !== 'media-card') mode = 'voice-friendly';
-  lockScreenMode = mode;
-  localStorage.setItem('ODAK_LOCK_SCREEN_MODE', mode);
-  updateLockScreenModeUI();
-  
-  if (isFocusing) {
-    if (lockScreenMode === 'media-card') {
-      closeLockScreenOngoingNotification();
-      ensureLockScreenAudio();
-      initLockScreenMediaSession(true);
-      showAppToast('🎵 Kilit Ekranı Medya Kartı devrede.', '📱');
-    } else {
-      stopLockScreenAudio();
-      clearLockScreenMediaSession();
-      if (document.hidden) {
-        showLockScreenOngoingNotification();
-      }
-      showAppToast('🛡️ Ses & WhatsApp Dostu mod devrede (Mikrofon tamamen serbest).', '✅');
-    }
-  }
-}
-
-function updateLockScreenModeUI() {
-  const btnVoice = document.getElementById('mode-btn-voice');
-  const btnMedia = document.getElementById('mode-btn-media');
-  const badge = document.getElementById('foc-lock-mode-badge');
-  const desc = document.getElementById('foc-lock-mode-desc');
-  const icon = document.getElementById('foc-lock-mode-icon');
-  
-  if (lockScreenMode === 'media-card') {
-    if (btnVoice) btnVoice.classList.remove('active');
-    if (btnMedia) btnMedia.classList.add('active');
-    if (badge) {
-      badge.textContent = 'Medya Kartı';
-      badge.style.background = 'rgba(59, 130, 246, 0.15)';
-      badge.style.color = '#60A5FA';
-      badge.style.borderColor = 'rgba(59, 130, 246, 0.3)';
-    }
-    if (icon) icon.textContent = '🎵';
-    if (desc) desc.textContent = 'Kilit ekranında müzik çalar görsel kartı gösterir. (WhatsApp ses kaydı sırasında mikrofonu serbest bırakmak için Ses Dostu mod önerilir).';
-  } else {
-    if (btnVoice) btnVoice.classList.add('active');
-    if (btnMedia) btnMedia.classList.remove('active');
-    if (badge) {
-      badge.textContent = 'Ses Dostu (Önerilen)';
-      badge.style.background = 'var(--accent-soft)';
-      badge.style.color = 'var(--accent)';
-      badge.style.borderColor = 'rgba(82, 199, 133, 0.3)';
-    }
-    if (icon) icon.textContent = '🛡️';
-    if (desc) desc.textContent = 'WhatsApp sesli mesajları ve Spotify ile %100 uyumludur. Mikrofonu asla engellemez, arka planda saat gibi dakik çalışır.';
-  }
-}
-
 function ensureLockScreenAudio() {
-  // Eğer kullanıcı ses dostu moddaysa VE ambiyans sesi kapalıysa ASLA sessizlik sesi çalma!
-  // Böylece WhatsApp sesli mesajları, mikrofon ve Spotify ASLA engellenmez!
-  if (lockScreenMode !== 'media-card' && currentAmbientType === 'off') {
-    stopLockScreenAudio();
-    return;
-  }
-
   // Eğer zaten bir ambiyans sesi (yağmur, kafe vb.) çalıyorsa ekstra dummy audio açma
   if (currentAmbientType !== 'off' && ambientAudioEl && !ambientAudioEl.paused) {
     stopLockScreenAudio();
@@ -10158,7 +9975,15 @@ function ensureLockScreenAudio() {
     document.body.appendChild(bgAudio);
   }
 
-  bgAudio.volume = 0.05;
+  if (!bgAudio._pauseAttached) {
+    // WhatsApp ses kaydı, telefon araması veya harici ses başlatıldığında sistem audio'yu duraklatabilir
+    bgAudio.addEventListener('pause', () => {
+      console.log('bgAudio sistem/WhatsApp tarafından duraklatıldı. Sayaç arka planda tam zaman damgasıyla güvenle sürmeye devam ediyor.');
+    });
+    bgAudio._pauseAttached = true;
+  }
+
+  bgAudio.volume = 0.05; // Fısıltı seviyesi sessizlik frekansı (iOS/Android kilit ekranı oynatıcısını 100% uyanık tutar)
   try {
     if (bgAudio.paused || bgAudio.ended) {
       bgAudio.currentTime = 0;
@@ -10166,7 +9991,7 @@ function ensureLockScreenAudio() {
     const p = bgAudio.play();
     if (p !== undefined) {
       p.then(() => {
-        if ('mediaSession' in navigator && lockScreenMode === 'media-card') {
+        if ('mediaSession' in navigator) {
           navigator.mediaSession.playbackState = 'playing';
         }
       }).catch(err => {
@@ -10187,7 +10012,6 @@ function stopLockScreenAudio() {
 }
 
 function initLockScreenMediaSession(forceNewCover = false) {
-  if (lockScreenMode !== 'media-card') return;
   if (!('mediaSession' in navigator) || !isFocusing) return;
 
   const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
@@ -10238,6 +10062,8 @@ function initLockScreenMediaSession(forceNewCover = false) {
       artwork: artworks
     });
 
+    // Pürüzsüz akış: Sadece başlatıldığında/açıldığında bir kere pozisyonu bildir
+    // Sürekli döngüde çağırmak işletim sisteminin 60 FPS kendi sayacı ile çakışıp "bir ileri bir geri" titremeye yol açıyordu
     syncLockScreenPosition();
 
     if ('playbackState' in navigator.mediaSession) {
@@ -10247,7 +10073,6 @@ function initLockScreenMediaSession(forceNewCover = false) {
 }
 
 function syncLockScreenPosition() {
-  if (lockScreenMode !== 'media-card') return;
   if (!('mediaSession' in navigator) || !isFocusing) return;
   try {
     if ('setPositionState' in navigator.mediaSession) {
@@ -10277,7 +10102,7 @@ function updateLockScreenTitleOnly() {
     document.title = `(${m}:${s}) 🌿 Odak Ajandası`;
   }
 
-  // App Badge API desteği varsa uygulama simgesi üzerindeki sayıyı güncelle
+  // App Badge API desteği varsa uygulama simgesi üzerindeki sayıyı güncelle (Chrome Android & iOS PWA)
   if ('setAppBadge' in navigator && isFocusing) {
     try {
       const mins = Math.max(1, Math.ceil(timeLeft / 60));
@@ -10285,10 +10110,9 @@ function updateLockScreenTitleOnly() {
     } catch(e) {}
   }
 
-  if (lockScreenMode !== 'media-card') return;
   if (!('mediaSession' in navigator) || !isFocusing) return;
 
-  // iOS SpringBoard çöküşünü önlemek için sadece dakika değiştiğinde güncelle
+  // iOS SpringBoard çöküşünü ve IPC yükünü önlemek için sadece tam dakika değiştiğinde metadata güncelle
   const curMin = Math.floor(timeLeft / 60);
   if (curMin === lastLockScreenMinute) return;
   lastLockScreenMinute = curMin;
@@ -10306,7 +10130,6 @@ function updateLockScreenTitleOnly() {
 }
 
 function updateLockScreenMediaSession(forceNewCover = false) {
-  if (lockScreenMode !== 'media-card') return;
   if (forceNewCover) {
     initLockScreenMediaSession(true);
   } else {
@@ -10648,12 +10471,13 @@ function startFocus(resumeExisting = false){
 
   saveActiveFocusSessionState();
   
-  if (lockScreenMode === 'media-card') {
+  // Uygulamadan çıkıldığında medya kartı otomatik açılacaktır; uygulama içindeyken ses çalınmaz
+  if (document.hidden) {
     ensureLockScreenAudio();
     initLockScreenMediaSession(true);
+    showLockScreenOngoingNotification();
   } else {
     stopLockScreenAudio();
-    clearLockScreenMediaSession();
   }
 
   document.getElementById('foc-btn-start').style.display = 'none';
@@ -10726,9 +10550,9 @@ function takeQuickBreak(){
   shortBreakTargetEndTime = Date.now() + 180 * 1000;
   saveActiveFocusSessionState();
   
-  if (lockScreenMode === 'media-card') {
+  if (document.hidden) {
+    ensureLockScreenAudio();
     initLockScreenMediaSession(true);
-  } else if (document.hidden) {
     showLockScreenOngoingNotification();
   }
   
@@ -10842,13 +10666,12 @@ function resumeFocusFromBreak(){
     } catch(e){}
   }
 
-  if (lockScreenMode === 'media-card') {
+  if (document.hidden) {
     ensureLockScreenAudio();
     initLockScreenMediaSession(true);
+    showLockScreenOngoingNotification();
   } else {
     stopLockScreenAudio();
-    clearLockScreenMediaSession();
-    if (document.hidden) showLockScreenOngoingNotification();
   }
 
   // Ana odak zamanlayıcısını kaldığı yerden devam ettir
@@ -12260,26 +12083,29 @@ function renderStats(){
    ══════════════════════════════════════════════════════ */
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
+    // Uygulamaya geri dönüldü: Saat farkını eşitle, bildirimi kapat ve mikrofonu/sesi serbest bırak
     handleVisibilityOrFocusSync();
     closeLockScreenOngoingNotification();
+    stopLockScreenAudio();
   } else {
+    // Uygulamadan çıkıldı veya telefon kilitlendi: Kilit ekranı medya kartı direkt otomatik devreye girer!
     if (isFocusing) {
       saveActiveFocusSessionState();
-      if (lockScreenMode === 'voice-friendly') {
-        showLockScreenOngoingNotification();
-      } else if (lockScreenMode === 'media-card') {
-        updateLockScreenMediaSession();
-      }
+      ensureLockScreenAudio();
+      initLockScreenMediaSession(true);
+      showLockScreenOngoingNotification();
     }
   }
 });
 window.addEventListener('pageshow', () => {
   handleVisibilityOrFocusSync();
   closeLockScreenOngoingNotification();
+  stopLockScreenAudio();
 });
 window.addEventListener('focus', () => {
   handleVisibilityOrFocusSync();
   closeLockScreenOngoingNotification();
+  stopLockScreenAudio();
 });
 
 /* ══════════════════════════════════════════════════════
@@ -12341,7 +12167,6 @@ try {
   updateSunInfo();
   renderUserProfileUI();
   renderFriends();
-  updateLockScreenModeUI();
   restoreSavedFocusSessionIfNeeded();
 } catch(e) { console.warn('bootstrap render error:', e); }
 
